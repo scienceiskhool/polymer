@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolymerCraft: Chemistry Workspace</title>
+    <!-- Tailwind CSS for high-quality layout & design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Radical Electron Glow */
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.8)); }
+            50% { transform: scale(1.3); filter: drop-shadow(0 0 12px rgba(251, 191, 36, 1)); }
+        }
+        .pulse-radical {
+            animation: pulse-glow 1.2s infinite ease-in-out;
+        }
+        /* Leaving Water Molecule float-out animation */
+        @keyframes float-away {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-110px) scale(0.6); opacity: 0; }
+        }
+        .water-bubble {
+            animation: float-away 2.2s forwards cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        /* Electron Split Movement Animations */
+        @keyframes electron-split-left {
+            0% { cx: 250px; cy: 142px; opacity: 1; }
+            100% { cx: 165px; cy: 142px; opacity: 1; }
+        }
+        @keyframes electron-split-right {
+            0% { cx: 250px; cy: 142px; opacity: 1; }
+            100% { cx: 335px; cy: 142px; opacity: 1; }
+        }
+        .animate-electron-left {
+            animation: electron-split-left 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .animate-electron-right {
+            animation: electron-split-right 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+
+    <!-- Navigation / Header -->
+    <header class="bg-slate-800 border-b border-slate-700 py-3 px-4 sm:px-6 sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                        PolymerCraft
+                    </h1>
+                    <p class="text-[10px] text-slate-400">Educational Molecular Laboratory</p>
+                </div>
+            </div>
+
+            <!-- Active Workspace Progress Badge -->
+            <div id="game-stats-bar" class="hidden flex items-center gap-4 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700/50">
+                <div class="text-xs sm:text-sm">
+                    <span class="text-slate-400">Monomer Series:</span>
+                    <span id="progress-display" class="font-bold text-indigo-400">1 / 5</span>
+                </div>
+                <div class="text-xs sm:text-sm border-l border-slate-700 pl-4">
+                    <span class="text-slate-400">Type:</span>
+                    <span id="current-category-display" class="font-bold text-emerald-400">Addition</span>
+                </div>
+            </div>
+
+            <!-- Global Action Controls -->
+            <div class="flex items-center gap-2">
+                <!-- Sound Toggle -->
+                <button id="sound-toggle" onclick="toggleSound()" class="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition text-slate-300" title="Toggle Sound">
+                    <svg id="sound-icon-on" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <svg id="sound-icon-off" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                </button>
+                <!-- Fullscreen Toggle -->
+                <button onclick="toggleFullscreen()" class="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition text-slate-300" title="Toggle Fullscreen">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Interactive Container -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-7xl w-full mx-auto">
+        
+        <!-- START SCREEN -->
+        <section id="screen-start" class="w-full max-w-2xl bg-slate-800 border border-slate-700 p-6 sm:p-10 rounded-2xl shadow-2xl relative overflow-hidden transition-all duration-300">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl"></div>
+            <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-cyan-600/10 rounded-full blur-3xl"></div>
+
+            <div class="text-center relative z-10">
+                <div class="inline-flex items-center gap-2 bg-slate-700/50 px-4 py-1.5 rounded-full border border-slate-600/30 text-xs text-slate-300 mb-6 font-medium">
+                    <span class="w-2 h-2 bg-indigo-500 rounded-full"></span>
+                    Interactive Polymerization Laboratory
+                </div>
+                <h2 class="text-3xl sm:text-5xl font-extrabold mb-4 tracking-tight leading-tight">
+                    Master the Chemistry of <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Polymerisation</span>
+                </h2>
+                <p class="text-slate-400 text-sm sm:text-base max-w-lg mx-auto mb-8 leading-relaxed">
+                    Explore organic chemical reactions! Break Carbon-Carbon double bonds to observe homolytic radical fission, synthesize condensation mechanisms by ejecting water, and slice continuous polymers to reconstruct original monomers.
+                </p>
+
+                <!-- Setup Section -->
+                <div class="space-y-6 max-w-md mx-auto text-left bg-slate-900/40 p-6 rounded-2xl border border-slate-700/50 mb-8">
+                    <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Study Pathway</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="selectType('addition')" id="btn-type-addition" class="group relative flex flex-col items-start p-4 rounded-xl border-2 border-indigo-500 bg-indigo-950/25 transition-all text-left">
+                            <span class="text-sm font-bold text-white group-hover:text-indigo-400">Addition Polymers</span>
+                            <span class="text-[11px] text-slate-400 mt-1">Saturated repeating chains from unsaturated monomers (e.g., Polyethene, PVC).</span>
+                        </button>
+                        <button onclick="selectType('condensation')" id="btn-type-condensation" class="group relative flex flex-col items-start p-4 rounded-xl border-2 border-slate-700 bg-slate-800 hover:bg-slate-750 transition-all text-left">
+                            <span class="text-sm font-bold text-white group-hover:text-indigo-400">Condensation Polymers</span>
+                            <span class="text-[11px] text-slate-400 mt-1">Ester & amide linkages made by eliminating a small molecule (e.g., $H_2O$).</span>
+                        </button>
+                    </div>
+
+                    <!-- Touch Assist Option -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-700/50">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-300">Enable Highlight Pointers</p>
+                            <p class="text-[10px] text-slate-500">Adds visible pulsing helper targets to reactive zones</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="touch-keyboard-assist" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:width-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="startWorkspace()" class="w-full max-w-sm py-4 px-8 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 font-extrabold text-lg text-white shadow-xl shadow-indigo-500/20 hover:shadow-indigo-500/35 transform hover:-translate-y-0.5 transition active:translate-y-0 flex items-center justify-center gap-3 mx-auto">
+                    Launch Chemistry Lab
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                </button>
+                <div class="text-[10px] text-slate-500 mt-3">Created by <span class="text-slate-400">Educational Lab Designers</span></div>
+            </div>
+        </section>
+
+        <!-- PLAYING VIEWPORT -->
+        <section id="screen-game" class="hidden w-full flex flex-col lg:flex-row gap-6 items-stretch">
+            
+            <!-- Left Panel: Context, Instructions & Controls -->
+            <div class="w-full lg:w-1/3 flex flex-col gap-4">
+                
+                <!-- Compound Details Card -->
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <span id="stage-badge" class="px-3 py-1 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full text-xs font-bold tracking-wider uppercase">
+                            Stage 1: Build Polymer
+                        </span>
+                    </div>
+
+                    <h3 id="compound-name" class="text-2xl font-black text-slate-100">Polyethene</h3>
+                    <p id="compound-desc" class="text-xs text-slate-400 mt-1 leading-relaxed">
+                        Convert the monomer (ethene) into the repeating unit of polyethene by breaking the reactive double bond.
+                    </p>
+
+                    <!-- Learning Guideline Box -->
+                    <div class="mt-4 p-3.5 bg-slate-900/60 rounded-xl border border-slate-700/50">
+                        <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5 mb-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                            Reaction Mechanism
+                        </h4>
+                        <p id="objective-text" class="text-xs text-slate-300 leading-relaxed">
+                            Monomers link together during addition polymerization as the standard double C=C bond breaks down into a single covalent bond, creating extension arms.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Interaction Steps / Guides Progress -->
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex-grow flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Synthesis Progress</h4>
+                        <div class="space-y-3" id="step-indicators-container">
+                            <!-- Injected Dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Reset & Actions Bar -->
+                    <div class="pt-4 border-t border-slate-700/50 mt-4 flex gap-2">
+                        <button onclick="resetCurrentStage()" class="flex-1 py-2.5 px-4 bg-slate-700 hover:bg-slate-600 transition text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.248 8H17.2" /></svg>
+                            Reset Workspace
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Core Interactive Laboratory Workbench -->
+            <div class="w-full lg:w-2/3 flex flex-col gap-4">
+                <div class="bg-slate-800 border-2 border-slate-700 rounded-2xl shadow-xl flex flex-col overflow-hidden relative" style="min-height: 520px;">
+                    
+                    <!-- Feedback Overlay (Correct/Wrong flashes) -->
+                    <div id="feedback-overlay" class="absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-30 transition-all duration-300 scale-95 opacity-0 pointer-events-none">
+                        <div class="p-6 rounded-full bg-emerald-500/10 text-emerald-400 mb-4 border border-emerald-500/20" id="feedback-icon-box"></div>
+                        <h3 class="text-3xl font-black text-white" id="feedback-title">Perfect Match!</h3>
+                        <p class="text-slate-400 mt-2 text-sm max-w-sm text-center" id="feedback-subtitle">You formed the covalent repeating bonds correctly.</p>
+                    </div>
+
+                    <!-- Workbench Sub-header / Status -->
+                    <div class="bg-slate-900/60 border-b border-slate-750 px-5 py-3 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-400 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full"></span>
+                            ACTIVE CHEMICAL MOLECULAR GRID
+                        </span>
+                    </div>
+
+                    <!-- CORE MOLECULAR CANVAS -->
+                    <div id="chemical-workbench" class="flex-grow flex items-center justify-center p-6 relative select-none bg-slate-950/40">
+                        <div id="molecular-assembly" class="w-full max-w-lg relative min-h-[340px] flex items-center justify-center">
+                            <!-- Interactive Chemical Entities will be rendered here dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- IN-GAME INTERACTIVE CONTEXTUAL ACTION BOARD -->
+                    <div class="bg-slate-900/85 border-t border-slate-700/80 p-4 sm:p-5">
+                        <div id="interaction-instructions" class="text-center text-xs font-bold text-slate-300 mb-4 bg-slate-950/50 py-2.5 px-4 rounded-lg border border-slate-800">
+                            Tap the highlighted red pi bond of the monomer to break it.
+                        </div>
+
+                        <!-- Action Controls Button Deck -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="action-deck-buttons">
+                            <!-- Dynamic Interactive buttons based on action needed -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- SUMMARY / WORKSPACE COMPLETED SCREEN -->
+        <section id="screen-summary" class="hidden w-full max-w-2xl bg-slate-800 border border-slate-700 p-8 sm:p-12 rounded-2xl shadow-2xl relative overflow-hidden transition-all duration-300 text-center">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl"></div>
+            <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl"></div>
+
+            <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-10 w-full h-full"></canvas>
+
+            <div class="relative z-20">
+                <div class="w-20 h-20 bg-indigo-500/15 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-indigo-500/30 shadow-inner">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+
+                <h2 class="text-3xl sm:text-5xl font-black mb-2 text-white">Laboratory Series Complete!</h2>
+                <p id="summary-perf-text" class="text-slate-400 max-w-md mx-auto text-sm mb-8 leading-relaxed">
+                    Splendid job! You successfully analyzed and completed all polymerization and deduction stages with high accuracy.
+                </p>
+
+                <!-- Navigation Controls -->
+                <div class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto justify-center">
+                    <button onclick="changeScreen('START')" class="flex-1 py-3 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        Main Menu
+                    </button>
+                    <button onclick="startWorkspace()" class="flex-1 py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.248 8H17.2" /></svg>
+                        Restart Exercises
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Information -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 px-6 text-center text-xs text-slate-500">
+        <p>© 2026 PolymerCraft Educational Labs. Fully structured for Chemistry Classrooms.</p>
+    </footer>
+
+    <!-- CHEMISTRY LAB ENGINE SCRIPT -->
+    <script>
+        // Sound configuration (Web Audio API synthesis)
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        // Workspace States
+        let selectedPolymerType = 'addition'; 
+        let currentScreen = 'START';
+        let activeLevelIndex = 0;
+        let activeStage = 1; // Stage 1: Build Polymer, Stage 2: Draw Monomer
+        let currentSubStep = 0; // Steps in Stage 1/2
+
+        // CONFETTI SYS VARIABLES
+        let confettiCanvas = null;
+        let confettiCtx = null;
+        let confettiParticles = [];
+        let animationFrameId = null;
+
+        // Complete Polymer Chemistry Database
+        const polymerLevels = {
+            addition: [
+                {
+                    name: "Polyethene",
+                    formula: "(C2H4)n",
+                    description: "Polyethene is the most common consumer plastic, utilized globally in bottles, packaging, and shopping bags.",
+                    monomerName: "Ethene",
+                    atoms: [
+                        { id: 'C1', type: 'C', x: 180, y: 150, label: 'C' },
+                        { id: 'C2', type: 'C', x: 320, y: 150, label: 'C' },
+                        { id: 'H1', type: 'H', x: 130, y: 80, label: 'H' },
+                        { id: 'H2', type: 'H', x: 130, y: 220, label: 'H' },
+                        { id: 'H3', type: 'H', x: 370, y: 80, label: 'H' },
+                        { id: 'H4', type: 'H', x: 370, y: 220, label: 'H' }
+                    ],
+                    bonds: [
+                        { id: 'B_C1_C2', from: 'C1', to: 'C2', type: 'double', reactive: true },
+                        { id: 'B_C1_H1', from: 'C1', to: 'H1', type: 'single' },
+                        { id: 'B_C1_H2', from: 'C1', to: 'H2', type: 'single' },
+                        { id: 'B_C2_H3', from: 'C2', to: 'H3', type: 'single' },
+                        { id: 'B_C2_H4', from: 'C2', to: 'H4', type: 'single' }
+                    ]
+                },
+                {
+                    name: "Polychloroethene (PVC)",
+                    formula: "(C2H3Cl)n",
+                    description: "Also known as Vinyl or PVC. It is highly robust and is used for water pipes, window frames, and electric cable insulation.",
+                    monomerName: "Chloroethene (Vinyl Chloride)",
+                    atoms: [
+                        { id: 'C1', type: 'C', x: 180, y: 150, label: 'C' },
+                        { id: 'C2', type: 'C', x: 320, y: 150, label: 'C' },
+                        { id: 'H1', type: 'H', x: 130, y: 80, label: 'H' },
+                        { id: 'H2', type: 'H', x: 130, y: 220, label: 'H' },
+                        { id: 'Cl1', type: 'Cl', x: 370, y: 80, label: 'Cl' },
+                        { id: 'H4', type: 'H', x: 370, y: 220, label: 'H' }
+                    ],
+                    bonds: [
+                        { id: 'B_C1_C2', from: 'C1', to: 'C2', type: 'double', reactive: true },
+                        { id: 'B_C1_H1', from: 'C1', to: 'H1', type: 'single' },
+                        { id: 'B_C1_H2', from: 'C1', to: 'H2', type: 'single' },
+                        { id: 'B_C2_Cl1', from: 'C2', to: 'Cl1', type: 'single' },
+                        { id: 'B_C2_H4', from: 'C2', to: 'H4', type: 'single' }
+                    ]
+                },
+                {
+                    name: "Polypropene",
+                    formula: "(C3H6)n",
+                    description: "An exceptionally tough and heat-resistant polymer used in chemical containers, reusable plasticware, and automotive parts.",
+                    monomerName: "Propene",
+                    atoms: [
+                        { id: 'C1', type: 'C', x: 180, y: 150, label: 'C' },
+                        { id: 'C2', type: 'C', x: 320, y: 150, label: 'C' },
+                        { id: 'H1', type: 'H', x: 130, y: 80, label: 'H' },
+                        { id: 'H2', type: 'H', x: 130, y: 220, label: 'H' },
+                        { id: 'Me1', type: 'CH3', x: 370, y: 80, label: 'CH₃' },
+                        { id: 'H4', type: 'H', x: 370, y: 220, label: 'H' }
+                    ],
+                    bonds: [
+                        { id: 'B_C1_C2', from: 'C1', to: 'C2', type: 'double', reactive: true },
+                        { id: 'B_C1_H1', from: 'C1', to: 'H1', type: 'single' },
+                        { id: 'B_C1_H2', from: 'C1', to: 'H2', type: 'single' },
+                        { id: 'B_C2_Me1', from: 'C2', to: 'Me1', type: 'single' },
+                        { id: 'B_C2_H4', from: 'C2', to: 'H4', type: 'single' }
+                    ]
+                },
+                {
+                    name: "Polybut-1-ene",
+                    formula: "(C4H8)n",
+                    description: "A highly flexible polymer with great chemical stability, extensively selected for manufacturing central heating hot-water pipes.",
+                    monomerName: "But-1-ene",
+                    atoms: [
+                        { id: 'C1', type: 'C', x: 180, y: 150, label: 'C' },
+                        { id: 'C2', type: 'C', x: 320, y: 150, label: 'C' },
+                        { id: 'H1', type: 'H', x: 130, y: 80, label: 'H' },
+                        { id: 'H2', type: 'H', x: 130, y: 220, label: 'H' },
+                        { id: 'Et1', type: 'C2H5', x: 370, y: 80, label: 'CH₂CH₃' },
+                        { id: 'H4', type: 'H', x: 370, y: 220, label: 'H' }
+                    ],
+                    bonds: [
+                        { id: 'B_C1_C2', from: 'C1', to: 'C2', type: 'double', reactive: true },
+                        { id: 'B_C1_H1', from: 'C1', to: 'H1', type: 'single' },
+                        { id: 'B_C1_H2', from: 'C1', to: 'H2', type: 'single' },
+                        { id: 'B_C2_Et1', from: 'C2', to: 'Et1', type: 'single' },
+                        { id: 'B_C2_H4', from: 'C2', to: 'H4', type: 'single' }
+                    ]
+                },
+                {
+                    name: "Polypent-2-ene",
+                    formula: "(C5H10)n",
+                    description: "An advanced isomer chain containing asymmetrical side chains (methyl and ethyl) demonstrating molecular sterics.",
+                    monomerName: "Pent-2-ene",
+                    atoms: [
+                        { id: 'C1', type: 'C', x: 180, y: 150, label: 'C' },
+                        { id: 'C2', type: 'C', x: 320, y: 150, label: 'C' },
+                        { id: 'Me1', type: 'CH3', x: 130, y: 80, label: 'CH₃' },
+                        { id: 'H2', type: 'H', x: 130, y: 220, label: 'H' },
+                        { id: 'Et1', type: 'C2H5', x: 370, y: 80, label: 'CH₂CH₃' },
+                        { id: 'H4', type: 'H', x: 370, y: 220, label: 'H' }
+                    ],
+                    bonds: [
+                        { id: 'B_C1_C2', from: 'C1', to: 'C2', type: 'double', reactive: true },
+                        { id: 'B_C1_Me1', from: 'C1', to: 'Me1', type: 'single' },
+                        { id: 'B_C1_H2', from: 'C1', to: 'H2', type: 'single' },
+                        { id: 'B_C2_Et1', from: 'C2', to: 'Et1', type: 'single' },
+                        { id: 'B_C2_H4', from: 'C2', to: 'H4', type: 'single' }
+                    ]
+                }
+            ],
+            condensation: [
+                {
+                    name: "Polyester (PET)",
+                    formula: "Polyester Chain",
+                    description: "Formed through the condensation of dicarboxylic acids with diols, ejecting a water molecule during the synthesis of each ester linkage.",
+                    monomerName: "Dicarboxylic Acid + Diol",
+                    type: "diol-acid"
+                },
+                {
+                    name: "Polyamide (Nylon-type)",
+                    formula: "Nylon Linkage",
+                    description: "An exceptionally strong polymer synthetically formed by coupling dicarboxylic acids with diamines, creating robust amide links.",
+                    monomerName: "Dicarboxylic Acid + Diamine",
+                    type: "amine-acid"
+                },
+                {
+                    name: "Polylactic Acid (PLA)",
+                    formula: "PLA Biodegradable",
+                    description: "A biodegradable thermoplastic polymer. It is synthesized using monomers with a hydroxyl group on one side and a carboxylic group on the other.",
+                    monomerName: "Lactic Acid (Hydroxycarboxylic Acid)",
+                    type: "hydroxy-acid"
+                }
+            ]
+        };
+
+        // Initialize Web Audio safely
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Play standard synthesizer tones
+        function playSynthSound(freqs, duration, type = 'sine', sweepFreq = null) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            freqs.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, now + (idx * 0.08));
+                
+                if (sweepFreq) {
+                    osc.frequency.exponentialRampToValueAtTime(sweepFreq, now + duration);
+                }
+
+                gainNode.gain.setValueAtTime(0.12, now + (idx * 0.08));
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + (idx * 0.08) + duration);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start(now + (idx * 0.08));
+                osc.stop(now + (idx * 0.08) + duration);
+            });
+        }
+
+        function playCorrectSound() {
+            playSynthSound([523.25, 659.25, 783.99], 0.35, 'triangle'); // C5 - E5 - G5
+        }
+
+        function playWrongSound() {
+            playSynthSound([220.00, 196.00], 0.4, 'sawtooth'); // Descent buzz
+        }
+
+        function playClickSound() {
+            playSynthSound([600], 0.04, 'sine');
+        }
+
+        function playFanfareSound() {
+            playSynthSound([523.25, 659.25, 783.99, 1046.50], 0.7, 'sine');
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon-on').classList.toggle('hidden', !soundEnabled);
+            document.getElementById('sound-icon-off').classList.toggle('hidden', soundEnabled);
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Fullscreen error: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Update Workspace Step Indicators
+        function updateProgressIndicator() {
+            const container = document.getElementById('step-indicators-container');
+            container.innerHTML = '';
+
+            let steps = [];
+            if (activeStage === 1) {
+                if (selectedPolymerType === 'addition') {
+                    steps = [
+                        { title: "Perform Homolytic Fission", desc: "Tap the reactive C=C double bond to split electrons." },
+                        { title: "Extend Monomer Arms", desc: "Retract radical electrons outwards to build reactive terminals." },
+                        { title: "Apply Polymer Brackets", desc: "Apply textbook brackets and subscript [n] to finalize." }
+                    ];
+                } else {
+                    steps = [
+                        { title: "Isolate Water Leaving Group", desc: "Identify and eliminate H₂O to prepare functional linkages." },
+                        { title: "Establish Backbone Linkage", desc: "Covalently connect the acid Carbonyl Carbon to the adjacent chain atom." },
+                        { title: "Apply Polymer Brackets", desc: "Seal repeating units with structural brackets [n], removing terminal HO- and -H groups to extend bonds." }
+                    ];
+                }
+            } else {
+                steps = [
+                    { title: "Slice Active Polymer Linkages", desc: "Select which bonds to break on the molecular grid above to isolate individual monomers." },
+                    { title: "Rehydrate/Unwrap to Monomers", desc: "Reconstitute isolated repeating segments into starting reactants with full displayed formulas." }
+                ];
+            }
+
+            steps.forEach((step, i) => {
+                const isActive = i === currentSubStep;
+                const isCompleted = i < currentSubStep;
+                
+                const stepEl = document.createElement('div');
+                stepEl.className = `p-3 rounded-xl border transition duration-300 ${
+                    isActive ? 'bg-indigo-600/25 border-indigo-500 shadow' : 
+                    isCompleted ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-900/40 border-slate-750'
+                }`;
+                
+                stepEl.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            isCompleted ? 'bg-emerald-500 text-slate-900' :
+                            isActive ? 'bg-indigo-500 text-white animate-pulse' : 'bg-slate-700 text-slate-400'
+                        }">
+                            ${isCompleted ? '✓' : i + 1}
+                        </span>
+                        <p class="text-xs font-bold ${isActive ? 'text-indigo-300' : isCompleted ? 'text-emerald-400' : 'text-slate-400'}">${step.title}</p>
+                    </div>
+                    ${isActive ? `<p class="text-[11px] text-slate-300 mt-1 pl-7 leading-normal">${step.desc}</p>` : ''}
+                `;
+                container.appendChild(stepEl);
+            });
+        }
+
+        // Toggle study pathway
+        function selectType(type) {
+            playClickSound();
+            selectedPolymerType = type;
+            document.getElementById('btn-type-addition').className = `group relative flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left ${type === 'addition' ? 'border-indigo-500 bg-indigo-950/25' : 'border-slate-700 bg-slate-800 hover:bg-slate-750'}`;
+            document.getElementById('btn-type-condensation').className = `group relative flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left ${type === 'condensation' ? 'border-indigo-500 bg-indigo-950/25' : 'border-slate-700 bg-slate-800 hover:bg-slate-750'}`;
+        }
+
+        // Start laboratory exercises
+        function startWorkspace() {
+            initAudio();
+            playClickSound();
+            activeLevelIndex = 0;
+            activeStage = 1;
+            currentSubStep = 0;
+
+            changeScreen('PLAYING');
+            initLevel();
+        }
+
+        function changeScreen(state) {
+            currentScreen = state;
+            const screenStart = document.getElementById('screen-start');
+            const screenGame = document.getElementById('screen-game');
+            const screenSummary = document.getElementById('screen-summary');
+            const gameStats = document.getElementById('game-stats-bar');
+
+            screenStart.classList.add('hidden');
+            screenGame.classList.add('hidden');
+            screenSummary.classList.add('hidden');
+            gameStats.classList.add('hidden');
+
+            if (state === 'START') {
+                screenStart.classList.remove('hidden');
+                stopConfetti();
+            } else if (state === 'PLAYING') {
+                screenGame.classList.remove('hidden');
+                gameStats.classList.remove('hidden');
+            } else if (state === 'SUMMARY') {
+                screenSummary.classList.remove('hidden');
+            }
+        }
+
+        // Load target Level and context
+        function initLevel() {
+            const currentLevel = polymerLevels[selectedPolymerType][activeLevelIndex];
+            
+            // Header stats
+            document.getElementById('progress-display').innerText = `${activeLevelIndex + 1} / ${polymerLevels[selectedPolymerType].length}`;
+            document.getElementById('current-category-display').innerText = selectedPolymerType === 'addition' ? "Addition Polymer" : "Condensation Polymer";
+            
+            // Layout descriptions
+            document.getElementById('compound-name').innerText = currentLevel.name;
+            document.getElementById('compound-desc').innerText = currentLevel.description;
+            document.getElementById('stage-badge').innerText = `Stage ${activeStage}: ${activeStage === 1 ? 'Build Polymer' : 'Identify Monomers'}`;
+            
+            if (activeStage === 1) {
+                document.getElementById('objective-text').innerText = selectedPolymerType === 'addition' 
+                    ? `Initiate homolytic cleavage of the standard ${currentLevel.monomerName} double bond, migrate radicals, and complete the macromolecule.`
+                    : `Isolate adjacent hydroxyl (-OH) and hydrogen (-H) groups, eliminate water molecules, and synthesize polyester/polyamide linkages.`;
+            } else {
+                document.getElementById('objective-text').innerText = selectedPolymerType === 'addition'
+                    ? `Identify the Carbon-Carbon single bonds connecting the repeating units, slice them to isolate a unit, and restore the starting monomer double bond.`
+                    : `Identify and slice the central linkage bond (ester or amide linkage) directly, then rehydrate the separate segments back to their original monomers showing fully displayed functional groups.`;
+            }
+
+            currentSubStep = 0;
+            resetStateFlags();
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        let levelState = {
+            doubleBondBroken: false,
+            leftChainExtended: false,
+            rightChainExtended: false,
+            bracketsPlaced: false,
+            waterMoleculesCondensed: false,
+            condensationLinked: false,
+            slicesMade: [], // index of cuts made
+            monomerBondType: 'single',
+            monomerHydrated: false,
+            procedureProceedAvailable: false
+        };
+
+        function resetStateFlags() {
+            levelState = {
+                doubleBondBroken: false,
+                leftChainExtended: false,
+                rightChainExtended: false,
+                bracketsPlaced: false,
+                waterMoleculesCondensed: false,
+                condensationLinked: false,
+                slicesMade: [],
+                monomerBondType: 'single',
+                monomerHydrated: false,
+                procedureProceedAvailable: false
+            };
+        }
+
+        function resetCurrentStage() {
+            playClickSound();
+            currentSubStep = 0;
+            resetStateFlags();
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        // Core Interactive Molecular Sandbox Renderer
+        function renderLevelWorkspace() {
+            const workspace = document.getElementById('molecular-assembly');
+            const interactionInstructions = document.getElementById('interaction-instructions');
+            const actionDeck = document.getElementById('action-deck-buttons');
+
+            workspace.innerHTML = '';
+            actionDeck.innerHTML = '';
+
+            const level = polymerLevels[selectedPolymerType][activeLevelIndex];
+            const showAssist = document.getElementById('touch-keyboard-assist').checked;
+
+            if (activeStage === 1) {
+                // ==========================================
+                // STAGE 1: SYNTHESIS WORKSPACE
+                // ==========================================
+                if (selectedPolymerType === 'addition') {
+                    
+                    // Layer bonds behind nodes (Following image_628a24.png and image_62ef02.png rules)
+                    let bondsSVG = `
+                        <!-- Left Side extension bond arm -->
+                        <line id="ext-left" x1="100" y1="150" x2="180" y2="150" stroke="#f43f5e" stroke-dasharray="4" stroke-width="3" class="transition-all duration-300 ${levelState.leftChainExtended ? 'opacity-100' : 'opacity-0'}" />
+                        <!-- Right Side extension bond arm -->
+                        <line id="ext-right" x1="320" y1="150" x2="400" y2="150" stroke="#f43f5e" stroke-dasharray="4" stroke-width="3" class="transition-all duration-300 ${levelState.rightChainExtended ? 'opacity-100' : 'opacity-0'}" />
+                    `;
+
+                    // Generate default bonds
+                    level.bonds.forEach(bond => {
+                        const fromAtom = level.atoms.find(a => a.id === bond.from);
+                        const toAtom = level.atoms.find(a => a.id === bond.to);
+                        
+                        if (bond.type === 'double') {
+                            if (!levelState.doubleBondBroken) {
+                                bondsSVG += `
+                                    <g class="cursor-pointer group" onclick="actionBreakDoubleBond()">
+                                        <line x1="${fromAtom.x}" y1="${fromAtom.y - 7}" x2="${toAtom.x}" y2="${toAtom.y - 7}" stroke="#e2e8f0" stroke-width="4" class="transition group-hover:stroke-indigo-400" />
+                                        <line x1="${fromAtom.x}" y1="${fromAtom.y + 7}" x2="${toAtom.x}" y2="${toAtom.y + 7}" stroke="#ef4444" stroke-width="4" class="transition group-hover:stroke-red-400 animate-pulse" />
+                                        ${showAssist ? `<circle cx="${(fromAtom.x + toAtom.x)/2}" cy="${fromAtom.y}" r="15" fill="#ef4444" class="opacity-40 animate-ping" />` : ''}
+                                    </g>
+                                `;
+                            } else {
+                                bondsSVG += `
+                                    <line x1="${fromAtom.x}" y1="${fromAtom.y}" x2="${toAtom.x}" y2="${toAtom.y}" stroke="#64748b" stroke-width="4" />
+                                `;
+                            }
+                        } else {
+                            bondsSVG += `
+                                <line x1="${fromAtom.x}" y1="${fromAtom.y}" x2="${toAtom.x}" y2="${toAtom.y}" stroke="#475569" stroke-width="3" />
+                            `;
+                        }
+                    });
+
+                    // Dynamic Homolytic Cleavage radical split animation (Following image_62ef02.png rules)
+                    let electronsSVG = "";
+                    // Radical electrons only appear in Step 1 (after double bond is broken, before they disappear in Step 2 chain extension)
+                    if (levelState.doubleBondBroken && !levelState.leftChainExtended) {
+                        electronsSVG += `
+                            <!-- Radical electron 1 moves left -->
+                            <circle cx="250" cy="142" r="5" fill="#fbbf24" class="animate-electron-left pulse-radical" />
+                            <!-- Radical electron 2 moves right -->
+                            <circle cx="250" cy="142" r="5" fill="#fbbf24" class="animate-electron-right pulse-radical" />
+                        `;
+                    }
+
+                    // Render atomic badges on top of everything
+                    let nodesSVG = "";
+                    level.atoms.forEach(atom => {
+                        let nodeColor = "bg-slate-700 text-slate-100 border-slate-500";
+                        if (atom.type === 'C') nodeColor = "bg-indigo-600 text-white border-indigo-400";
+                        if (atom.type === 'Cl') nodeColor = "bg-emerald-600 text-emerald-100 border-emerald-400";
+                        if (atom.type === 'CH3' || atom.type === 'C2H5') nodeColor = "bg-amber-600 text-amber-100 border-amber-400";
+
+                        nodesSVG += `
+                            <foreignObject x="${atom.x - 22}" y="${atom.y - 22}" width="44" height="44" class="overflow-visible">
+                                <div class="w-10 h-10 rounded-full border-2 ${nodeColor} flex items-center justify-center font-bold text-xs shadow-md select-none">
+                                    ${atom.label}
+                                </div>
+                            </foreignObject>
+                        `;
+                    });
+
+                    workspace.innerHTML = `
+                    <svg viewBox="0 0 500 300" class="w-full h-full max-h-[300px] z-10 select-none">
+                        <!-- 1. Background Brackets -->
+                        <path id="left-bracket" d="M 110 60 L 90 60 L 90 240 L 110 240" stroke="#6366f1" stroke-width="3" fill="none" class="transition-opacity duration-300 ${levelState.bracketsPlaced ? 'opacity-100' : 'opacity-10'}"/>
+                        <path id="right-bracket" d="M 390 60 L 410 60 L 410 240 L 390 240" stroke="#6366f1" stroke-width="3" fill="none" class="transition-opacity duration-300 ${levelState.bracketsPlaced ? 'opacity-100' : 'opacity-10'}"/>
+                        <text id="subscript-n" x="420" y="248" fill="#6366f1" font-size="24" font-weight="extrabold" class="transition-opacity duration-300 ${levelState.bracketsPlaced ? 'opacity-100' : 'opacity-10'}">n</text>
+
+                        <!-- 2. Bonds -->
+                        ${bondsSVG}
+
+                        <!-- 3. Moving Radicals -->
+                        ${electronsSVG}
+
+                        <!-- 4. Atoms Layer -->
+                        ${nodesSVG}
+                    </svg>
+                    `;
+
+                    if (!levelState.doubleBondBroken) {
+                        interactionInstructions.innerHTML = "🎯 STEP 1: Tap the reactive <span class='text-red-400 font-extrabold'>C=C double bond</span> to trigger homolytic fission.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionBreakDoubleBond()" class="col-span-4 py-3 bg-red-600 hover:bg-red-500 font-extrabold text-sm rounded-xl transition shadow-lg shadow-red-500/25">
+                                Break Pi C=C Bond (Homolytic Cleavage)
+                            </button>
+                        `;
+                    } else if (!levelState.leftChainExtended || !levelState.rightChainExtended) {
+                        interactionInstructions.innerHTML = "🔗 STEP 2: Extend the <span class='text-yellow-400 font-bold'>free radical electrons</span> outwards to create open bonding terminals.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionExtendChains()" class="col-span-4 py-3 bg-indigo-600 hover:bg-indigo-500 font-extrabold text-sm rounded-xl transition shadow-lg shadow-indigo-500/25">
+                                Extend Polymer Arms
+                            </button>
+                        `;
+                    } else if (!levelState.bracketsPlaced) {
+                        interactionInstructions.innerHTML = "📦 STEP 3: Apply structural brackets <span class='text-indigo-400 font-bold'>[ ]</span> and subscript <span class='text-indigo-400 font-bold'>n</span>.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionPlaceBrackets()" class="col-span-4 py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-sm rounded-xl transition shadow-lg shadow-emerald-500/25">
+                                Apply [ Brackets ] & Subscript (n)
+                            </button>
+                        `;
+                    } else {
+                        interactionInstructions.innerHTML = "✨ Study the completed polymer architecture shown above. Click below to continue.";
+                        actionDeck.innerHTML = `
+                            <button onclick="proceedToStage2()" class="col-span-4 py-3.5 bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-600 hover:to-indigo-700 font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 transition shadow-xl animate-bounce">
+                                Proceed to Stage 2 (Analysis)
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                            </button>
+                        `;
+                    }
+
+                } else {
+                    // ==========================================
+                    // STAGE 1: CONDENSATION REACTION WORKSPACE
+                    // ==========================================
+                    // Dynamic rendering representing EXACTLY the textbook structural look (image_6351b6.png)
+                    const monomerType = level.type;
+                    
+                    // Coordinates & Layout configurations
+                    let acidBoxX = 175;
+                    let acidC1_X = 110;
+                    let acidC2_X = 240;
+                    let secondBoxX = 380;
+                    
+                    let bondsSVG = "";
+                    let nodesSVG = "";
+
+                    // Determine right-hand functional component label based on level type
+                    let reactantLabel = "O";
+                    let innerReactantText = "O";
+                    let isAmine = monomerType === 'amine-acid';
+                    let isPLA = monomerType === 'hydroxy-acid';
+
+                    if (isAmine) {
+                        reactantLabel = "NH";
+                        innerReactantText = "N";
+                    }
+
+                    // Draw connecting linkage bond (Center C-O or C-N)
+                    if (levelState.condensationLinked) {
+                        bondsSVG += `
+                            <!-- Center Linkage Connection -->
+                            <line x1="${acidC2_X}" y1="150" x2="${secondBoxX - 50}" y2="150" stroke="#22d3ee" stroke-width="4" />
+                        `;
+                    } else if (levelState.waterMoleculesCondensed) {
+                        // Water condensed, but not linked yet: show gap (stray diagonal bond line removed completely!)
+                    } else {
+                        // Not condensed: show dotted reactive interface bond
+                        bondsSVG += `
+                            <line x1="${acidC2_X}" y1="150" x2="${acidC2_X + 30}" y2="190" stroke="#ef4444" stroke-width="3" stroke-dasharray="3" />
+                            <line x1="${secondBoxX - 50}" y1="150" x2="${secondBoxX - 85}" y2="150" stroke="#ef4444" stroke-width="3" stroke-dasharray="3" />
+                        `;
+                    }
+
+                    // Horizontal extension bonds beyond the brackets (Step 3)
+                    if (levelState.bracketsPlaced) {
+                        bondsSVG += `
+                            <!-- Left extended bond -->
+                            <line x1="50" y1="150" x2="${acidC1_X}" y2="150" stroke="#6366f1" stroke-dasharray="4" stroke-width="3" />
+                            <!-- Right extended bond -->
+                            <line x1="${secondBoxX + 35}" y1="150" x2="450" y2="150" stroke="#6366f1" stroke-dasharray="4" stroke-width="3" />
+                        `;
+                    }
+
+                    // ==================== LEFT MOLECULE (DICARBOXYLIC ACID) ====================
+                    // Central grey block [ R ]
+                    nodesSVG += `
+                        <rect x="${acidBoxX - 25}" y="130" width="50" height="40" rx="6" fill="#475569" stroke="#334155" stroke-width="2" />
+                        <text x="${acidBoxX}" y="154" fill="#fff" font-size="9" font-weight="extrabold" text-anchor="middle">Box (R)</text>
+                        
+                        <!-- Left and right connecting bonds from central box to carbonyl carbons -->
+                        <line x1="${acidBoxX - 25}" y1="150" x2="${acidC1_X}" y2="150" stroke="#e2e8f0" stroke-width="3" />
+                        <line x1="${acidBoxX + 25}" y1="150" x2="${acidC2_X}" y2="150" stroke="#e2e8f0" stroke-width="3" />
+                    `;
+
+                    // LEFT CARBONYL C=O
+                    bondsSVG += `
+                        <!-- Double bond C=O left side -->
+                        <line x1="${acidC1_X - 5}" y1="150" x2="${acidC1_X - 15}" y2="110" stroke="#f43f5e" stroke-width="3" />
+                        <line x1="${acidC1_X + 3}" y1="150" x2="${acidC1_X - 7}" y2="110" stroke="#f43f5e" stroke-width="3" />
+                    `;
+                    nodesSVG += `
+                        <!-- Carbonyl C -->
+                        <circle cx="${acidC1_X}" cy="150" r="16" fill="#4f46e5" stroke="#818cf8" stroke-width="1.5" />
+                        <text x="${acidC1_X}" y="154" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">C</text>
+
+                        <!-- Left top O -->
+                        <circle cx="${acidC1_X - 11}" cy="108" r="12" fill="#ef4444" stroke="#f87171" stroke-width="1.5" />
+                        <text x="${acidC1_X - 11}" y="111" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">O</text>
+                    `;
+
+                    // Left-end hydroxyl group (-OH) is removed and extended on step 3
+                    if (!levelState.bracketsPlaced) {
+                        bondsSVG += `
+                            <!-- Left bond to outer OH -->
+                            <line x1="${acidC1_X}" y1="150" x2="${acidC1_X - 35}" y2="185" stroke="#e2e8f0" stroke-width="3" />
+                        `;
+                        nodesSVG += `
+                            <!-- Left OH end group -->
+                            <circle cx="${acidC1_X - 35}" cy="185" r="14" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5" />
+                            <text x="${acidC1_X - 35}" y="188" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">OH</text>
+                        `;
+                    }
+
+                    // RIGHT CARBONYL C=O
+                    bondsSVG += `
+                        <!-- Double bond C=O right side -->
+                        <line x1="${acidC2_X - 5}" y1="150" x2="${acidC2_X - 15}" y2="110" stroke="#f43f5e" stroke-width="3" />
+                        <line x1="${acidC2_X + 3}" y1="150" x2="${acidC2_X - 7}" y2="110" stroke="#f43f5e" stroke-width="3" />
+                    `;
+                    nodesSVG += `
+                        <circle cx="${acidC2_X}" cy="150" r="16" fill="#4f46e5" stroke="#818cf8" stroke-width="1.5" />
+                        <text x="${acidC2_X}" y="154" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">C</text>
+
+                        <!-- Right top O -->
+                        <circle cx="${acidC2_X - 11}" cy="108" r="12" fill="#ef4444" stroke="#f87171" stroke-width="1.5" />
+                        <text x="${acidC2_X - 11}" y="111" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">O</text>
+                    `;
+
+                    // Reactive right OH group (Removed on condensation)
+                    if (!levelState.waterMoleculesCondensed) {
+                        nodesSVG += `
+                            <!-- Reactive Leaving OH group -->
+                            <g class="${showAssist ? 'animate-pulse' : ''}" onclick="actionCondenseWater()">
+                                <circle cx="${acidC2_X + 30}" cy="190" r="14" fill="#ef4444" stroke="#f87171" stroke-width="2" class="cursor-pointer" />
+                                <text x="${acidC2_X + 30}" y="193" fill="#fff" font-size="9" font-weight="black" text-anchor="middle" class="cursor-pointer">OH</text>
+                                ${showAssist ? `<circle cx="${acidC2_X + 30}" cy="190" r="20" fill="#ef4444" fill-opacity="0.2" class="animate-ping pointer-events-none" />` : ''}
+                            </g>
+                        `;
+                    }
+
+
+                    // ==================== RIGHT MOLECULE (DIOL / DIAMINE / PLA) ====================
+                    if (!isPLA) {
+                        // Diol/Diamine central box [ R' ]
+                        nodesSVG += `
+                            <rect x="${secondBoxX - 25}" y="130" width="50" height="40" rx="6" fill="#475569" stroke="#334155" stroke-width="2" />
+                            <text x="${secondBoxX}" y="154" fill="#fff" font-size="9" font-weight="extrabold" text-anchor="middle">Box (R')</text>
+                            
+                            <!-- Internal bonds flanking central box -->
+                            <line x1="${secondBoxX - 25}" y1="150" x2="${secondBoxX - 50}" y2="150" stroke="#e2e8f0" stroke-width="3" />
+                            <line x1="${secondBoxX + 25}" y1="150" x2="${secondBoxX + 50}" y2="150" stroke="#e2e8f0" stroke-width="3" />
+                        `;
+
+                        // Right-side Heteroatom
+                        nodesSVG += `
+                            <circle cx="${secondBoxX + 50}" cy="150" r="14" fill="#10b981" stroke="#34d399" stroke-width="1.5" />
+                            <text x="${secondBoxX + 50}" y="154" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">${innerReactantText}</text>
+                        `;
+
+                        // Far right H group (Removed on step 3)
+                        if (!levelState.bracketsPlaced) {
+                            bondsSVG += `
+                                <line x1="${secondBoxX + 50}" y1="150" x2="${secondBoxX + 75}" y2="150" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${secondBoxX + 75}" cy="150" r="11" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5" />
+                                <text x="${secondBoxX + 75}" y="153" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">H</text>
+                            `;
+                        }
+
+                        // Amine vertical hydrogens (if Nylon amide)
+                        if (isAmine) {
+                            bondsSVG += `
+                                <line x1="${secondBoxX + 50}" y1="150" x2="${secondBoxX + 50}" y2="175" stroke="#cbd5e1" stroke-width="2" />
+                                <line x1="${secondBoxX - 50}" y1="150" x2="${secondBoxX - 50}" y2="175" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${secondBoxX + 50}" cy="175" r="10" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1" />
+                                <text x="${secondBoxX + 50}" y="178" fill="#1e293b" font-size="8" font-weight="bold" text-anchor="middle">H</text>
+                                
+                                <circle cx="${secondBoxX - 50}" cy="175" r="10" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1" />
+                                <text x="${secondBoxX - 50}" y="178" fill="#1e293b" font-size="8" font-weight="bold" text-anchor="middle">H</text>
+                            `;
+                        }
+
+                        // Left reactive Heteroatom of right monomer
+                        nodesSVG += `
+                            <circle cx="${secondBoxX - 50}" cy="150" r="14" fill="#10b981" stroke="#34d399" stroke-width="1.5" />
+                            <text x="${secondBoxX - 50}" y="154" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">${innerReactantText}</text>
+                        `;
+
+                        // Reactive left-end H group (Removed on condensation)
+                        if (!levelState.waterMoleculesCondensed) {
+                            nodesSVG += `
+                                <g class="${showAssist ? 'animate-pulse' : ''}" onclick="actionCondenseWater()">
+                                    <circle cx="${secondBoxX - 85}" cy="150" r="12" fill="#ef4444" stroke="#f87171" stroke-width="2" class="cursor-pointer" />
+                                    <text x="${secondBoxX - 85}" y="153" fill="#fff" font-size="9" font-weight="black" text-anchor="middle" class="cursor-pointer">H</text>
+                                    ${showAssist ? `<circle cx="${secondBoxX - 85}" cy="150" r="18" fill="#ef4444" fill-opacity="0.2" class="animate-ping pointer-events-none" />` : ''}
+                                </g>
+                            `;
+                        }
+
+                    } else {
+                        // Monomer with hydroxyl on one side & carboxyl on other (PLA Hydroxycarboxylic Acid)
+                        nodesSVG += `
+                            <rect x="${secondBoxX - 15}" y="130" width="50" height="40" rx="6" fill="#d97706" stroke="#b45309" stroke-width="2" />
+                            <text x="${secondBoxX + 10}" y="154" fill="#fff" font-size="9" font-weight="extrabold" text-anchor="middle">CH(CH₃)</text>
+                            
+                            <!-- Internal bond to left oxygen -->
+                            <line x1="${secondBoxX - 15}" y1="150" x2="${secondBoxX - 50}" y2="150" stroke="#e2e8f0" stroke-width="3" />
+                        `;
+
+                        // Far right carboxyl / hydroxyl extension logic
+                        if (!levelState.bracketsPlaced) {
+                            bondsSVG += `
+                                <line x1="${secondBoxX + 35}" y1="150" x2="${secondBoxX + 60}" y2="150" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${secondBoxX + 60}" cy="150" r="11" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5" />
+                                <text x="${secondBoxX + 60}" y="153" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">H</text>
+                            `;
+                        }
+
+                        // Left reactive Heteroatom
+                        nodesSVG += `
+                            <circle cx="${secondBoxX - 50}" cy="150" r="14" fill="#10b981" stroke="#34d399" stroke-width="1.5" />
+                            <text x="${secondBoxX - 50}" y="154" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">O</text>
+                        `;
+
+                        // Reactive left-end H group (Removed on condensation)
+                        if (!levelState.waterMoleculesCondensed) {
+                            nodesSVG += `
+                                <g class="${showAssist ? 'animate-pulse' : ''}" onclick="actionCondenseWater()">
+                                    <circle cx="${secondBoxX - 85}" cy="150" r="12" fill="#ef4444" stroke="#f87171" stroke-width="2" class="cursor-pointer" />
+                                    <text x="${secondBoxX - 85}" y="153" fill="#fff" font-size="9" font-weight="black" text-anchor="middle" class="cursor-pointer">H</text>
+                                    ${showAssist ? `<circle cx="${secondBoxX - 85}" cy="150" r="18" fill="#ef4444" fill-opacity="0.2" class="animate-ping pointer-events-none" />` : ''}
+                                </g>
+                            `;
+                        }
+                    }
+
+                    // Water bubble floating away animation
+                    let floatySVG = "";
+                    if (levelState.waterMoleculesCondensed && !levelState.condensationLinked) {
+                        floatySVG += `
+                            <g class="water-bubble">
+                                <circle cx="300" cy="110" r="18" fill="#38bdf8" opacity="0.85" stroke="#e0f2fe" stroke-width="1.5" />
+                                <text x="300" y="114" fill="#ffffff" font-size="10" font-weight="black" text-anchor="middle">H₂O</text>
+                            </g>
+                        `;
+                    }
+
+                    workspace.innerHTML = `
+                    <svg viewBox="0 0 500 300" class="w-full h-full max-h-[300px] z-10 select-none">
+                        <!-- 1. Background Brackets -->
+                        <path id="left-bracket" d="M 85 50 L 65 50 L 65 230 L 85 230" stroke="#6366f1" stroke-width="3" fill="none" class="transition-opacity duration-300 ${levelState.bracketsPlaced ? 'opacity-100' : 'opacity-10'}"/>
+                        <path id="right-bracket" d="M 415 50 L 435 50 L 435 230 L 415 230" stroke="#6366f1" stroke-width="3" fill="none" class="transition-opacity duration-300 ${levelState.bracketsPlaced ? 'opacity-100' : 'opacity-10'}"/>
+                        <text id="subscript-n" x="445" y="238" fill="#6366f1" font-size="24" font-weight="extrabold" class="transition-opacity duration-300 ${levelState.bracketsPlaced ? 'opacity-100' : 'opacity-10'}">n</text>
+
+                        <!-- 2. Bonds -->
+                        ${bondsSVG}
+
+                        <!-- 3. Atoms -->
+                        ${nodesSVG}
+
+                        <!-- 4. Floating Condensate -->
+                        ${floatySVG}
+                    </svg>
+                    `;
+
+                    if (!levelState.waterMoleculesCondensed) {
+                        interactionInstructions.innerHTML = "💧 STEP 1: Tap the highlighted reactive leaving groups <span class='text-red-400 font-bold'>-OH</span> and <span class='text-red-400 font-bold'>-H</span> to condense out water.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionCondenseWater()" class="col-span-4 py-3 bg-sky-600 hover:bg-sky-500 font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-sky-500/25">
+                                Eject Leaving Groups (Condense H₂O)
+                            </button>
+                        `;
+                    } else if (!levelState.condensationLinked) {
+                        interactionInstructions.innerHTML = "🔗 STEP 2: Link the highly reactive Carbonyl Carbon to the Heteroatom backbone.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionFormCondensationLink()" class="col-span-4 py-3 bg-indigo-600 hover:bg-indigo-500 font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-indigo-500/25">
+                                Form Covalent Linkage
+                            </button>
+                        `;
+                    } else if (!levelState.bracketsPlaced) {
+                        interactionInstructions.innerHTML = "📦 STEP 3: Apply structural brackets <span class='text-indigo-400 font-bold'>[ ]</span> and subscript <span class='text-indigo-400 font-bold'>n</span> to finalize, removing terminal HO- and -H groups to extend bonds.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionPlaceBrackets()" class="col-span-4 py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-sm rounded-xl transition shadow-lg shadow-emerald-500/25">
+                                Apply [ Brackets ] & Subscript (n)
+                            </button>
+                        `;
+                    } else {
+                        interactionInstructions.innerHTML = "✨ Study the completed condensation polymer architecture shown above. Click below to continue.";
+                        actionDeck.innerHTML = `
+                            <button onclick="proceedToStage2()" class="col-span-4 py-3.5 bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-600 hover:to-indigo-700 font-extrabold text-sm rounded-xl flex items-center justify-center gap-2 transition shadow-xl animate-bounce">
+                                Proceed to Stage 2 (Analysis)
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                            </button>
+                        `;
+                    }
+                }
+            } else {
+                // ==========================================
+                // STAGE 2: ANALYSIS & RECONSTRUCTION
+                // ==========================================
+                // Dynamic instruction tracking (Fixing issues mentioned in Screenshot 2026-07-15 at 9.47.50 AM.png)
+                const requiredSlices = selectedPolymerType === 'addition' ? 2 : 1; 
+
+                if (levelState.slicesMade.length < requiredSlices) {
+                    // SLICING PHASE
+                    if (selectedPolymerType === 'addition') {
+                        const sideGroup = level.atoms[4] ? level.atoms[4].label : "H";
+                        let bondsSVG = `
+                            <!-- Backbone horizontal chain line -->
+                            <line x1="20" y1="120" x2="480" y2="120" stroke="#475569" stroke-width="4" />
+                        `;
+
+                        let nodesSVG = "";
+                        const sections = [
+                            { xOffset: 80 },
+                            { xOffset: 250 },
+                            { xOffset: 420 }
+                        ];
+
+                        // Draw lines flanking C's first, ensuring proper SVG layering (Fixing image_628a24.png)
+                        sections.forEach(sec => {
+                            bondsSVG += `
+                                <line x1="${sec.xOffset - 40}" y1="120" x2="${sec.xOffset - 40}" y2="70" stroke="#334155" stroke-width="3" />
+                                <line x1="${sec.xOffset - 40}" y1="120" x2="${sec.xOffset - 40}" y2="170" stroke="#334155" stroke-width="3" />
+                                <line x1="${sec.xOffset + 40}" y1="120" x2="${sec.xOffset + 40}" y2="70" stroke="#334155" stroke-width="3" />
+                                <line x1="${sec.xOffset + 40}" y1="120" x2="${sec.xOffset + 40}" y2="170" stroke="#334155" stroke-width="3" />
+                            `;
+
+                            nodesSVG += `
+                                <!-- Left Carbon -->
+                                <circle cx="${sec.xOffset - 40}" cy="120" r="16" fill="#4f46e5" stroke="#818cf8" stroke-width="1.5" />
+                                <text x="${sec.xOffset - 40}" y="124" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">C</text>
+                                
+                                <!-- Right Carbon -->
+                                <circle cx="${sec.xOffset + 40}" cy="120" r="16" fill="#4f46e5" stroke="#818cf8" stroke-width="1.5" />
+                                <text x="${sec.xOffset + 40}" y="124" fill="#fff" font-size="11" font-weight="extrabold" text-anchor="middle">C</text>
+                                
+                                <!-- Vertical caps (Hydrogens / Alkyl elements) -->
+                                <circle cx="${sec.xOffset - 40}" cy="65" r="11" fill="#334155" />
+                                <text x="${sec.xOffset - 40}" y="69" fill="#94a3b8" font-size="10" text-anchor="middle">H</text>
+
+                                <circle cx="${sec.xOffset - 40}" cy="175" r="11" fill="#334155" />
+                                <text x="${sec.xOffset - 40}" y="179" fill="#94a3b8" font-size="10" text-anchor="middle">H</text>
+
+                                <rect x="${sec.xOffset + 18}" y="45" width="44" height="20" rx="4" fill="#d97706" />
+                                <text x="${sec.xOffset + 40}" y="58" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">${sideGroup}</text>
+
+                                <circle cx="${sec.xOffset + 40}" cy="175" r="11" fill="#334155" />
+                                <text x="${sec.xOffset + 40}" y="179" fill="#94a3b8" font-size="10" text-anchor="middle">H</text>
+                            `;
+                        });
+
+                        // Interactive Slicing points directly on C-C inter-unit joint bonds (Fixing screenshot button reliance)
+                        let cutsSVG = "";
+                        const cuts = [
+                            { id: 0, x: 145 },
+                            { id: 1, x: 315 }
+                        ];
+
+                        cuts.forEach(cut => {
+                            const cutActive = levelState.slicesMade.includes(cut.id);
+                            cutsSVG += `
+                                <g class="cursor-pointer group" onclick="actionMakeSlice(${cut.id})">
+                                    <!-- Thick overlay for easy tapping -->
+                                    <line x1="${cut.x}" y1="40" x2="${cut.x}" y2="200" stroke="transparent" stroke-width="20" class="cursor-pointer" />
+                                    <!-- Visible laser cut guide line -->
+                                    <line x1="${cut.x}" y1="30" x2="${cut.x}" y2="210" stroke="${cutActive ? '#10b981' : '#f43f5e'}" stroke-dasharray="6" stroke-width="4" />
+                                    <!-- Dynamic Scissor Badge -->
+                                    <rect x="${cut.x - 16}" y="105" width="32" height="30" rx="6" fill="${cutActive ? '#10b981' : '#334155'}" class="transition group-hover:scale-110 shadow-lg" />
+                                    <text x="${cut.x}" y="124" fill="#fff" font-size="11" font-weight="black" text-anchor="middle">✂</text>
+                                    ${showAssist && !cutActive ? `<circle cx="${cut.x}" cy="120" r="22" fill="#ef4444" fill-opacity="0.25" class="animate-ping pointer-events-none" />` : ''}
+                                </g>
+                            `;
+                        });
+
+                        workspace.innerHTML = `
+                        <svg viewBox="0 0 500 250" class="w-full h-full max-h-[250px] z-10 select-none animate-scale-up">
+                            ${bondsSVG}
+                            ${nodesSVG}
+                            ${cutsSVG}
+                        </svg>
+                        `;
+
+                        interactionInstructions.innerHTML = "✂ STEP 1: Click directly on the <span class='text-amber-400 font-extrabold'>Carbon-Carbon single bonds (lasers)</span> connecting the monomer units to slice the polymer.";
+
+                    } else {
+                        // CONDENSATION SINGLE REPEATING UNIT ONLY (Fixing crowding / Screenshot 2026-07-15 at 9.49.14 AM.png)
+                        const monomerType = level.type;
+                        let innerReactantText = monomerType === 'amine-acid' ? 'NH' : 'O';
+                        
+                        let bondsSVG = "";
+                        let nodesSVG = "";
+
+                        // Define positions for single unit
+                        let acidC1_X = 130;
+                        let acidBoxX = 200;
+                        let acidC2_X = 270;
+                        let hetero_X = 350;
+                        let diolBoxX = 420;
+                        let farHetero_X = 490;
+
+                        // Left dangling extension bond
+                        bondsSVG += `
+                            <line x1="70" y1="120" x2="${acidC1_X}" y2="120" stroke="#6366f1" stroke-dasharray="4" stroke-width="3" />
+                        `;
+
+                        // Carbonyl C1
+                        bondsSVG += `
+                            <line x1="${acidC1_X - 5}" y1="120" x2="${acidC1_X - 15}" y2="80" stroke="#f43f5e" stroke-width="2.5" />
+                            <line x1="${acidC1_X + 3}" y1="120" x2="${acidC1_X - 7}" y2="80" stroke="#f43f5e" stroke-width="2.5" />
+                        `;
+                        nodesSVG += `
+                            <circle cx="${acidC1_X}" cy="120" r="14" fill="#4f46e5" />
+                            <text x="${acidC1_X}" y="124" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+                            <circle cx="${acidC1_X - 11}" cy="80" r="9" fill="#ef4444" />
+                            <text x="${acidC1_X - 11}" y="83" fill="#fff" font-size="7" font-weight="bold" text-anchor="middle">O</text>
+                        `;
+
+                        // Acid Box
+                        bondsSVG += `
+                            <line x1="${acidC1_X}" y1="120" x2="${acidBoxX - 25}" y2="120" stroke="#cbd5e1" stroke-width="2" />
+                            <line x1="${acidBoxX + 25}" y1="120" x2="${acidC2_X}" y2="120" stroke="#cbd5e1" stroke-width="2" />
+                        `;
+                        nodesSVG += `
+                            <rect x="${acidBoxX - 25}" y="105" width="50" height="30" rx="4" fill="#475569" stroke="#334155" stroke-width="1.5" />
+                            <text x="${acidBoxX}" y="123" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">Box (R)</text>
+                        `;
+
+                        // Carbonyl C2
+                        bondsSVG += `
+                            <line x1="${acidC2_X - 5}" y1="120" x2="${acidC2_X - 15}" y2="80" stroke="#f43f5e" stroke-width="2.5" />
+                            <line x1="${acidC2_X + 3}" y1="120" x2="${acidC2_X - 7}" y2="80" stroke="#f43f5e" stroke-width="2.5" />
+                        `;
+                        nodesSVG += `
+                            <circle cx="${acidC2_X}" cy="120" r="14" fill="#4f46e5" />
+                            <text x="${acidC2_X}" y="124" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+                            <circle cx="${acidC2_X - 11}" cy="80" r="9" fill="#ef4444" />
+                            <text x="${acidC2_X - 11}" y="83" fill="#fff" font-size="7" font-weight="bold" text-anchor="middle">O</text>
+                        `;
+
+                        // Central Linkage (Clickable Joint)
+                        const jointSliced = levelState.slicesMade.includes(0);
+                        bondsSVG += `
+                            <line x1="${acidC2_X}" y1="120" x2="${hetero_X}" y2="120" stroke="${jointSliced ? '#f43f5e' : '#22d3ee'}" stroke-width="4" stroke-dasharray="${jointSliced ? '4' : '0'}" />
+                        `;
+
+                        // Heteroatom 1
+                        nodesSVG += `
+                            <circle cx="${hetero_X}" cy="120" r="12" fill="#10b981" />
+                            <text x="${hetero_X}" y="124" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">${innerReactantText}</text>
+                        `;
+
+                        // Diol Box
+                        bondsSVG += `
+                            <line x1="${hetero_X}" y1="120" x2="${diolBoxX - 25}" y2="120" stroke="#cbd5e1" stroke-width="2" />
+                            <line x1="${diolBoxX + 25}" y1="120" x2="${farHetero_X}" y2="120" stroke="#cbd5e1" stroke-width="2" />
+                        `;
+                        nodesSVG += `
+                            <rect x="${diolBoxX - 25}" y="105" width="50" height="30" rx="4" fill="#475569" stroke="#334155" stroke-width="1.5" />
+                            <text x="${diolBoxX}" y="123" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">Box (R')</text>
+                        `;
+
+                        // Far Heteroatom 2
+                        nodesSVG += `
+                            <circle cx="${farHetero_X}" cy="120" r="12" fill="#10b981" />
+                            <text x="${farHetero_X}" y="124" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">${innerReactantText}</text>
+                        `;
+
+                        // Right dangling extension bond
+                        bondsSVG += `
+                            <line x1="${farHetero_X}" y1="120" x2="550" y2="120" stroke="#6366f1" stroke-dasharray="4" stroke-width="3" />
+                        `;
+
+                        // Scissor Overlay direct link trigger
+                        let cutsSVG = "";
+                        if (!jointSliced) {
+                            let cutX = (acidC2_X + hetero_X) / 2;
+                            cutsSVG += `
+                                <g class="cursor-pointer group" onclick="actionMakeSlice(0)">
+                                    <line x1="${cutX}" y1="30" x2="${cutX}" y2="210" stroke="#f43f5e" stroke-dasharray="6" stroke-width="3" />
+                                    <rect x="${cutX - 14}" y="105" width="28" height="28" rx="6" fill="#334155" class="transition group-hover:scale-110 shadow-lg" />
+                                    <text x="${cutX}" y="123" fill="#fff" font-size="10" font-weight="black" text-anchor="middle">✂</text>
+                                    ${showAssist ? `<circle cx="${cutX}" cy="120" r="20" fill="#f43f5e" fill-opacity="0.2" class="animate-ping pointer-events-none" />` : ''}
+                                </g>
+                            `;
+                        }
+
+                        workspace.innerHTML = `
+                        <svg viewBox="0 0 580 250" class="w-full h-full max-h-[250px] z-10 select-none animate-scale-up">
+                            ${bondsSVG}
+                            ${nodesSVG}
+                            ${cutsSVG}
+                        </svg>
+                        `;
+
+                        interactionInstructions.innerHTML = `✂ STEP 1: Click directly on the <span class='text-cyan-400 font-bold'>ester/amide linkage (scissors)</span> to cleave the polymer chain.`;
+                    }
+
+                } else {
+                    // ==========================================
+                    // STAGE 2: ISOLATED RECONSTRUCTION PHASE
+                    // ==========================================
+                    if (selectedPolymerType === 'addition') {
+                        const sideGroup = level.atoms[4] ? level.atoms[4].label : "H";
+                        let bondsSVG = "";
+
+                        if (levelState.monomerBondType === 'double') {
+                            bondsSVG += `
+                                <line x1="210" y1="114" x2="290" y2="114" stroke="#06b6d4" stroke-width="5" class="animate-pulse" />
+                                <line x1="210" y1="126" x2="290" y2="126" stroke="#06b6d4" stroke-width="5" class="animate-pulse" />
+                            `;
+                        } else {
+                            bondsSVG += `
+                                <line x1="210" y1="120" x2="290" y2="120" stroke="#475569" stroke-width="5" />
+                                <line x1="170" y1="120" x2="210" y2="120" stroke="#ef4444" stroke-width="3" stroke-dasharray="3" />
+                                <line x1="290" y1="120" x2="330" y2="120" stroke="#ef4444" stroke-width="3" stroke-dasharray="3" />
+                            `;
+                        }
+
+                        bondsSVG += `
+                            <line x1="210" y1="120" x2="210" y2="60" stroke="#334155" stroke-width="3" />
+                            <line x1="210" y1="120" x2="210" y2="180" stroke="#334155" stroke-width="3" />
+                            <line x1="290" y1="120" x2="290" y2="60" stroke="#334155" stroke-width="3" />
+                            <line x1="290" y1="120" x2="290" y2="180" stroke="#334155" stroke-width="3" />
+                        `;
+
+                        let nodesSVG = `
+                            <!-- Left C -->
+                            <circle cx="210" cy="120" r="22" fill="#4f46e5" stroke="#818cf8" stroke-width="2" />
+                            <text x="210" y="125" fill="#fff" font-size="14" font-weight="extrabold" text-anchor="middle">C</text>
+                            
+                            <!-- Right C -->
+                            <circle cx="290" cy="120" r="22" fill="#4f46e5" stroke="#818cf8" stroke-width="2" />
+                            <text x="290" y="125" fill="#fff" font-size="14" font-weight="extrabold" text-anchor="middle">C</text>
+
+                            <!-- H Caps -->
+                            <circle cx="210" cy="55" r="14" fill="#334155" />
+                            <text x="210" y="59" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">H</text>
+
+                            <circle cx="210" cy="185" r="14" fill="#334155" />
+                            <text x="210" y="189" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">H</text>
+
+                            <rect x="263" y="38" width="54" height="24" rx="6" fill="#d97706" />
+                            <text x="290" y="53" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">${sideGroup}</text>
+
+                            <circle cx="290" cy="185" r="14" fill="#334155" />
+                            <text x="290" y="189" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">H</text>
+                        `;
+
+                        workspace.innerHTML = `
+                        <svg viewBox="0 0 500 250" class="w-full h-full max-h-[250px] z-10 select-none animate-scale-up">
+                            <circle cx="250" cy="120" r="110" fill="#312e81" fill-opacity="0.15" />
+                            ${bondsSVG}
+                            ${nodesSVG}
+                        </svg>
+                        `;
+
+                        interactionInstructions.innerHTML = "🧪 STEP 2: Reform the stable monomer by folding active polymer extension arms back into a Carbon-Carbon double bond.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionToggleMonomerBond()" class="col-span-2 py-3 bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs rounded-xl flex flex-col items-center justify-center transition shadow-lg">
+                                <span>Form Double Bond (C=C)</span>
+                                <span class="text-[10px] text-indigo-200">CURRENT: ${levelState.monomerBondType.toUpperCase()} BOND</span>
+                            </button>
+                            <button onclick="actionVerifyMonomer()" class="col-span-2 py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-sm rounded-xl transition shadow-lg">
+                                Verify Monomer Synthesis
+                            </button>
+                        `;
+
+                    } else {
+                        // Condensation Isolated Units showing FULL displayed formulas of dicarboxylic acid / diols / diamines
+                        let bondsSVG = "";
+                        let nodesSVG = "";
+
+                        let monomer1_X = 160;
+                        let monomer2_X = 390;
+                        const monomerType = level.type;
+                        const isAmine = monomerType === 'amine-acid';
+
+                        if (levelState.monomerHydrated) {
+                            // ==================== REHYDRATED DETAILED DISPLAYED FORMULA ====================
+                            // 1. Dicarboxylic Acid (monomer 1) Displayed: HO - C(=O) - R - C(=O) - OH
+                            // Central box (R)
+                            nodesSVG += `
+                                <rect x="${monomer1_X - 25}" y="110" width="50" height="30" rx="4" fill="#475569" stroke="#334155" stroke-width="1.5" />
+                                <text x="${monomer1_X}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">Box (R)</text>
+                                <line x1="${monomer1_X - 25}" y1="125" x2="${monomer1_X - 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                                <line x1="${monomer1_X + 25}" y1="125" x2="${monomer1_X + 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+
+                            // Left carbonyl C=O + O-H
+                            bondsSVG += `
+                                <line x1="${monomer1_X - 55}" y1="125" x2="${monomer1_X - 65}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X - 47}" y1="125" x2="${monomer1_X - 57}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X - 55}" y1="125" x2="${monomer1_X - 85}" y2="125" stroke="#10b981" stroke-width="2" />
+                                <line x1="${monomer1_X - 85}" y1="125" x2="${monomer1_X - 105}" y2="125" stroke="#cbd5e1" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer1_X - 55}" cy="125" r="11" fill="#4f46e5" />
+                                <text x="${monomer1_X - 55}" y="129" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+                                <circle cx="${monomer1_X - 61}" cy="90" r="8" fill="#ef4444" />
+                                <text x="${monomer1_X - 61}" y="93" fill="#fff" font-size="7" font-weight="bold" text-anchor="middle">O</text>
+                                
+                                <circle cx="${monomer1_X - 85}" cy="125" r="10" fill="#10b981" />
+                                <text x="${monomer1_X - 85}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">O</text>
+                                <circle cx="${monomer1_X - 105}" cy="125" r="8" fill="#94a3b8" />
+                                <text x="${monomer1_X - 105}" y="128" fill="#1e293b" font-size="8" font-weight="black" text-anchor="middle">H</text>
+                            `;
+
+                            // Right carbonyl C=O + O-H
+                            bondsSVG += `
+                                <line x1="${monomer1_X + 55}" y1="125" x2="${monomer1_X + 45}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X + 63}" y1="125" x2="${monomer1_X + 53}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X + 55}" y1="125" x2="${monomer1_X + 85}" y2="125" stroke="#10b981" stroke-width="2" />
+                                <line x1="${monomer1_X + 85}" y1="125" x2="${monomer1_X + 105}" y2="125" stroke="#cbd5e1" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer1_X + 55}" cy="125" r="11" fill="#4f46e5" />
+                                <text x="${monomer1_X + 55}" y="129" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+                                <circle cx="${monomer1_X + 49}" cy="90" r="8" fill="#ef4444" />
+                                <text x="${monomer1_X + 49}" y="93" fill="#fff" font-size="7" font-weight="bold" text-anchor="middle">O</text>
+                                
+                                <circle cx="${monomer1_X + 85}" cy="125" r="10" fill="#10b981" />
+                                <text x="${monomer1_X + 85}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">O</text>
+                                <circle cx="${monomer1_X + 105}" cy="125" r="8" fill="#94a3b8" />
+                                <text x="${monomer1_X + 105}" y="128" fill="#1e293b" font-size="8" font-weight="black" text-anchor="middle">H</text>
+                            `;
+
+
+                            // 2. Diol or Diamine (monomer 2) Displayed: H-O - R' - O-H  or  H-N(H) - R' - N(H)-H
+                            // Central box (R')
+                            nodesSVG += `
+                                <rect x="${monomer2_X - 25}" y="110" width="50" height="30" rx="4" fill="#475569" stroke="#334155" stroke-width="1.5" />
+                                <text x="${monomer2_X}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">Box (R')</text>
+                                <line x1="${monomer2_X - 25}" y1="125" x2="${monomer2_X - 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                                <line x1="${monomer2_X + 25}" y1="125" x2="${monomer2_X + 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+
+                            let heteroLabel = isAmine ? 'N' : 'O';
+                            
+                            // Left heteroatom and hydrogen
+                            bondsSVG += `
+                                <line x1="${monomer2_X - 55}" y1="125" x2="${monomer2_X - 75}" y2="125" stroke="#cbd5e1" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer2_X - 55}" cy="125" r="10" fill="#10b981" />
+                                <text x="${monomer2_X - 55}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">${heteroLabel}</text>
+                                <circle cx="${monomer2_X - 75}" cy="125" r="8" fill="#94a3b8" />
+                                <text x="${monomer2_X - 75}" y="128" fill="#1e293b" font-size="8" font-weight="black" text-anchor="middle">H</text>
+                            `;
+
+                            // Right heteroatom and hydrogen
+                            bondsSVG += `
+                                <line x1="${monomer2_X + 55}" y1="125" x2="${monomer2_X + 75}" y2="125" stroke="#cbd5e1" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer2_X + 55}" cy="125" r="10" fill="#10b981" />
+                                <text x="${monomer2_X + 55}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">${heteroLabel}</text>
+                                <circle cx="${monomer2_X + 75}" cy="125" r="8" fill="#94a3b8" />
+                                <text x="${monomer2_X + 75}" y="128" fill="#1e293b" font-size="8" font-weight="black" text-anchor="middle">H</text>
+                            `;
+
+                            // Vertical hydrogens for diamine displayed formula
+                            if (isAmine) {
+                                bondsSVG += `
+                                    <line x1="${monomer2_X - 55}" y1="125" x2="${monomer2_X - 55}" y2="145" stroke="#cbd5e1" stroke-width="1.5" />
+                                    <line x1="${monomer2_X + 55}" y1="125" x2="${monomer2_X + 55}" y2="145" stroke="#cbd5e1" stroke-width="1.5" />
+                                `;
+                                nodesSVG += `
+                                    <circle cx="${monomer2_X - 55}" cy="145" r="8" fill="#94a3b8" />
+                                    <text x="${monomer2_X - 55}" y="148" fill="#1e293b" font-size="8" font-weight="bold" text-anchor="middle">H</text>
+                                    <circle cx="${monomer2_X + 55}" cy="145" r="8" fill="#94a3b8" />
+                                    <text x="${monomer2_X + 55}" y="148" fill="#1e293b" font-size="8" font-weight="bold" text-anchor="middle">H</text>
+                                `;
+                            }
+
+                        } else {
+                            // ==================== BROKEN INTERMEDIATE BACKBONE STATE ====================
+                            // Shows open links lacking functional termination
+                            // Central box (R)
+                            nodesSVG += `
+                                <rect x="${monomer1_X - 25}" y="110" width="50" height="30" rx="4" fill="#475569" stroke="#334155" stroke-width="1.5" />
+                                <text x="${monomer1_X}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">Box (R)</text>
+                                <line x1="${monomer1_X - 25}" y1="125" x2="${monomer1_X - 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                                <line x1="${monomer1_X + 25}" y1="125" x2="${monomer1_X + 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+
+                            // Left carbonyl Carbon (unrehydrated)
+                            bondsSVG += `
+                                <line x1="${monomer1_X - 55}" y1="125" x2="${monomer1_X - 65}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X - 47}" y1="125" x2="${monomer1_X - 57}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X - 55}" y1="125" x2="${monomer1_X - 75}" y2="125" stroke="#ef4444" stroke-dasharray="3" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer1_X - 55}" cy="125" r="11" fill="#4f46e5" />
+                                <text x="${monomer1_X - 55}" y="129" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+                                <circle cx="${monomer1_X - 61}" cy="90" r="8" fill="#ef4444" />
+                                <text x="${monomer1_X - 61}" y="93" fill="#fff" font-size="7" font-weight="bold" text-anchor="middle">O</text>
+                            `;
+
+                            // Right carbonyl Carbon (unrehydrated)
+                            bondsSVG += `
+                                <line x1="${monomer1_X + 55}" y1="125" x2="${monomer1_X + 45}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X + 63}" y1="125" x2="${monomer1_X + 53}" y2="90" stroke="#f43f5e" stroke-width="2.5" />
+                                <line x1="${monomer1_X + 55}" y1="125" x2="${monomer1_X + 75}" y2="125" stroke="#ef4444" stroke-dasharray="3" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer1_X + 55}" cy="125" r="11" fill="#4f46e5" />
+                                <text x="${monomer1_X + 55}" y="129" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">C</text>
+                                <circle cx="${monomer1_X + 49}" cy="90" r="8" fill="#ef4444" />
+                                <text x="${monomer1_X + 49}" y="93" fill="#fff" font-size="7" font-weight="bold" text-anchor="middle">O</text>
+                            `;
+
+
+                            // Central box (R')
+                            nodesSVG += `
+                                <rect x="${monomer2_X - 25}" y="110" width="50" height="30" rx="4" fill="#475569" stroke="#334155" stroke-width="1.5" />
+                                <text x="${monomer2_X}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">Box (R')</text>
+                                <line x1="${monomer2_X - 25}" y1="125" x2="${monomer2_X - 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                                <line x1="${monomer2_X + 25}" y1="125" x2="${monomer2_X + 55}" y2="125" stroke="#cbd5e1" stroke-width="2" />
+                            `;
+
+                            let heteroLabel = isAmine ? 'NH' : 'O';
+                            
+                            // Left hetero (unrehydrated)
+                            bondsSVG += `
+                                <line x1="${monomer2_X - 55}" y1="125" x2="${monomer2_X - 75}" y2="125" stroke="#ef4444" stroke-dasharray="3" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer2_X - 55}" cy="125" r="10" fill="#10b981" />
+                                <text x="${monomer2_X - 55}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">${heteroLabel}</text>
+                            `;
+
+                            // Right hetero (unrehydrated)
+                            bondsSVG += `
+                                <line x1="${monomer2_X + 55}" y1="125" x2="${monomer2_X + 75}" y2="125" stroke="#ef4444" stroke-dasharray="3" stroke-width="1.5" />
+                            `;
+                            nodesSVG += `
+                                <circle cx="${monomer2_X + 55}" cy="125" r="10" fill="#10b981" />
+                                <text x="${monomer2_X + 55}" y="128" fill="#fff" font-size="8" font-weight="bold" text-anchor="middle">${heteroLabel}</text>
+                            `;
+                        }
+
+                        workspace.innerHTML = `
+                        <svg viewBox="0 0 540 250" class="w-full h-full max-h-[250px] z-10 select-none animate-scale-up">
+                            <rect x="20" y="40" width="500" height="170" rx="12" fill="#1e1b4b" fill-opacity="0.2" />
+                            ${bondsSVG}
+                            ${nodesSVG}
+                        </svg>
+                        `;
+
+                        interactionInstructions.innerHTML = "🧪 STEP 2: Rehydrate the open reactive linkages with water equivalents (+H and -OH) to reform the initial stable monomers.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionToggleMonomerHydration()" class="col-span-2 py-3 bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs rounded-xl flex flex-col items-center justify-center transition shadow-lg">
+                                <span>Rehydrate Terminals (+H / -OH)</span>
+                                <span class="text-[10px] text-indigo-200">CURRENT: ${levelState.monomerHydrated ? 'HYDRATED' : 'OPEN COVALENT'}</span>
+                            </button>
+                            <button onclick="actionVerifyMonomer()" class="col-span-2 py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-sm rounded-xl transition shadow-lg">
+                                Verify Monomer Synthesis
+                            </button>
+                        `;
+                    }
+                }
+            }
+        }
+
+        // Action: Break Pi bond
+        function actionBreakDoubleBond() {
+            if (levelState.doubleBondBroken) return;
+            playClickSound();
+            levelState.doubleBondBroken = true;
+            currentSubStep = 1;
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        // Action: Extend chains
+        function actionExtendChains() {
+            if (!levelState.doubleBondBroken) return;
+            playClickSound();
+            levelState.leftChainExtended = true;
+            levelState.rightChainExtended = true;
+            currentSubStep = 2;
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        // Action: Condensation water extraction
+        function actionCondenseWater() {
+            if (levelState.waterMoleculesCondensed) return;
+            playCorrectSound();
+            levelState.waterMoleculesCondensed = true;
+            currentSubStep = 1;
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        // Action: Covalently connect condensation components
+        function actionFormCondensationLink() {
+            if (!levelState.waterMoleculesCondensed) return;
+            playClickSound();
+            levelState.condensationLinked = true;
+            currentSubStep = 2;
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        // Action: Apply brackets
+        function actionPlaceBrackets() {
+            playCorrectSound();
+            levelState.bracketsPlaced = true;
+            levelState.procedureProceedAvailable = true;
+            
+            triggerFeedback(true, "Synthesis Complete!", "Successfully structuralized the repeating units.");
+            renderLevelWorkspace();
+        }
+
+        // Action: Stage 2 Transition
+        function proceedToStage2() {
+            playClickSound();
+            activeStage = 2;
+            currentSubStep = 0;
+            resetStateFlags();
+            initLevel();
+        }
+
+        // Action: Slice chain (Directly on Vector elements)
+        function actionMakeSlice(id) {
+            playClickSound();
+            if (levelState.slicesMade.includes(id)) {
+                levelState.slicesMade = levelState.slicesMade.filter(val => val !== id);
+            } else {
+                levelState.slicesMade.push(id);
+            }
+
+            const reqCuts = selectedPolymerType === 'addition' ? 2 : 1;
+            if (levelState.slicesMade.length === reqCuts) {
+                currentSubStep = 1;
+                updateProgressIndicator();
+            }
+            renderLevelWorkspace();
+        }
+
+        // Action: Addition Stage 2 Toggle C-C / C=C bond
+        function actionToggleMonomerBond() {
+            playClickSound();
+            levelState.monomerBondType = levelState.monomerBondType === 'single' ? 'double' : 'single';
+            renderLevelWorkspace();
+        }
+
+        // Action: Condensation Stage 2 Toggle Hydration
+        function actionToggleMonomerHydration() {
+            playClickSound();
+            levelState.monomerHydrated = !levelState.monomerHydrated;
+            renderLevelWorkspace();
+        }
+
+        // Action: Verify Monomer Formulation
+        function actionVerifyMonomer() {
+            let correct = false;
+
+            if (selectedPolymerType === 'addition') {
+                if (levelState.monomerBondType === 'double') correct = true;
+            } else {
+                if (levelState.monomerHydrated) correct = true;
+            }
+
+            if (correct) {
+                playCorrectSound();
+                triggerFeedback(true, "Monomers Verified!", "Excellent. Formulations match starting materials.");
+
+                setTimeout(() => {
+                    // Check if more compounds in selection
+                    if (activeLevelIndex < polymerLevels[selectedPolymerType].length - 1) {
+                        activeLevelIndex++;
+                        activeStage = 1;
+                        initLevel();
+                    } else {
+                        // Series completed
+                        playFanfareSound();
+                        changeScreen('SUMMARY');
+                    }
+                }, 2200);
+            } else {
+                playWrongSound();
+                triggerFeedback(false, "Incomplete Configuration", "Recall that converting polymer segments to original monomers requires reforming double bonds or re-hydrating acid-diol linkages.");
+                setTimeout(() => {
+                    resetCurrentStage();
+                }, 2400);
+            }
+        }
+
+        // Action Feedback Visuals
+        function triggerFeedback(isCorrect, title, subtitle) {
+            const overlay = document.getElementById('feedback-overlay');
+            const iconBox = document.getElementById('feedback-icon-box');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackSubtitle = document.getElementById('feedback-subtitle');
+
+            if (isCorrect) {
+                overlay.className = "absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center z-30 transition-all duration-300 scale-100 opacity-100";
+                iconBox.className = "p-6 rounded-full bg-emerald-500/10 text-emerald-400 mb-4 border border-emerald-500/20";
+                iconBox.innerHTML = `<svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>`;
+                feedbackTitle.className = "text-3xl font-black text-emerald-400";
+                feedbackTitle.innerText = title;
+                feedbackSubtitle.innerText = subtitle;
+                triggerConfettiBurst();
+            } else {
+                overlay.className = "absolute inset-0 bg-slate-950/95 flex flex-col items-center justify-center z-30 transition-all duration-300 scale-100 opacity-100";
+                iconBox.className = "p-6 rounded-full bg-red-500/10 text-red-400 mb-4 border border-red-500/20";
+                iconBox.innerHTML = `<svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                feedbackTitle.className = "text-3xl font-black text-red-500";
+                feedbackTitle.innerText = title;
+                feedbackSubtitle.innerText = subtitle;
+            }
+
+            setTimeout(() => {
+                overlay.className = "absolute inset-0 bg-slate-900/95 flex flex-col items-center justify-center z-30 transition-all duration-300 scale-95 opacity-0 pointer-events-none";
+            }, 2000);
+        }
+
+        // Confetti physics engine
+        function triggerConfettiBurst() {
+            confettiCanvas = document.getElementById('confetti-canvas');
+            confettiCtx = confettiCanvas.getContext('2d');
+            
+            confettiCanvas.width = confettiCanvas.parentElement.clientWidth;
+            confettiCanvas.height = confettiCanvas.parentElement.clientHeight;
+
+            confettiParticles = [];
+            for (let i = 0; i < 60; i++) {
+                confettiParticles.push({
+                    x: confettiCanvas.width / 2,
+                    y: confettiCanvas.height / 2,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: (Math.random() - 0.75) * 14,
+                    color: `hsl(${Math.random() * 360}, 90%, 60%)`,
+                    size: Math.random() * 8 + 4,
+                    rotation: Math.random() * 360,
+                    rotationSpeed: Math.random() * 8 - 4
+                });
+            }
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            runConfettiLoop();
+        }
+
+        function runConfettiLoop() {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            let alive = false;
+            confettiParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.22; // Gravity
+                p.rotation += p.rotationSpeed;
+
+                if (p.y < confettiCanvas.height) {
+                    alive = true;
+                    confettiCtx.save();
+                    confettiCtx.translate(p.x, p.y);
+                    confettiCtx.rotate(p.rotation * Math.PI / 180);
+                    confettiCtx.fillStyle = p.color;
+                    confettiCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    confettiCtx.restore();
+                }
+            });
+
+            if (alive) {
+                animationFrameId = requestAnimationFrame(runConfettiLoop);
+            }
+        }
+
+        function stopConfetti() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (confettiCtx) confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        }
+    </script>
+</body>
+</html>
