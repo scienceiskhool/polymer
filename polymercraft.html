@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Inter Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -60,7 +61,7 @@
                     <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
                         PolymerCraft
                     </h1>
-                    <p class="text-[10px] text-slate-400">Educational Molecular Laboratory</p>
+                    <p class="text-[10px] text-slate-400">Created by Ms Khoo Xiang Yun</p>
                 </div>
             </div>
 
@@ -100,8 +101,8 @@
     <!-- Main Interactive Container -->
     <main class="flex-grow flex flex-col items-center justify-center p-4 max-w-7xl w-full mx-auto">
         
-        <!-- START SCREEN -->
-        <section id="screen-start" class="w-full max-w-2xl bg-slate-800 border border-slate-700 p-6 sm:p-10 rounded-2xl shadow-2xl relative overflow-hidden transition-all duration-300">
+        <!-- START SCREEN with Polymer Background.png dynamic CSS overlay -->
+        <section id="screen-start" class="w-full max-w-2xl bg-slate-800 border border-slate-700 p-6 sm:p-10 rounded-2xl shadow-2xl relative overflow-hidden transition-all duration-300" style="background-image: linear-gradient(rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.96)), url('Polymer Background.png'); background-size: cover; background-position: center;">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl"></div>
             <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-cyan-600/10 rounded-full blur-3xl"></div>
 
@@ -148,7 +149,7 @@
                     Launch Chemistry Lab
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                 </button>
-                <div class="text-[10px] text-slate-500 mt-3">Created by <span class="text-slate-400">Educational Lab Designers</span></div>
+                <div class="text-[10px] text-slate-500 mt-3">Created by <span class="text-slate-400">Ms Khoo Xiang Yun</span></div>
             </div>
         </section>
 
@@ -282,7 +283,7 @@
 
     <!-- Footer Information -->
     <footer class="bg-slate-900 border-t border-slate-800 py-4 px-6 text-center text-xs text-slate-500">
-        <p>© 2026 PolymerCraft Educational Labs. Fully structured for Chemistry Classrooms.</p>
+        <p>© Created by Ms Khoo Xiang Yun with the use of Gemini</p>
     </footer>
 
     <!-- CHEMISTRY LAB ENGINE SCRIPT -->
@@ -304,7 +305,7 @@
         let confettiParticles = [];
         let animationFrameId = null;
 
-        // Complete Polymer Chemistry Database
+        // Complete Polymer Chemistry Database (Ref. image_62f73c.png & image_62f77d.png guidelines)
         const polymerLevels = {
             addition: [
                 {
@@ -523,7 +524,8 @@
                     steps = [
                         { title: "Isolate Water Leaving Group", desc: "Identify and eliminate H₂O to prepare functional linkages." },
                         { title: "Establish Backbone Linkage", desc: "Covalently connect the acid Carbonyl Carbon to the adjacent chain atom." },
-                        { title: "Apply Polymer Brackets", desc: "Seal repeating units with structural brackets [n], removing terminal HO- and -H groups to extend bonds." }
+                        { title: "Clear Terminal Groups", desc: "Tap the outer -OH and -H groups to clear them and extend open covalent arm linkages." },
+                        { title: "Apply Polymer Brackets", desc: "Seal repeating units with structural brackets [n] and subscript n." }
                     ];
                 }
             } else {
@@ -638,6 +640,9 @@
             bracketsPlaced: false,
             waterMoleculesCondensed: false,
             condensationLinked: false,
+            leftTerminalRemoved: false,
+            rightTerminalRemoved: false,
+            terminalsRemoved: false,
             slicesMade: [], // index of cuts made
             monomerBondType: 'single',
             monomerHydrated: false,
@@ -652,6 +657,9 @@
                 bracketsPlaced: false,
                 waterMoleculesCondensed: false,
                 condensationLinked: false,
+                leftTerminalRemoved: false,
+                rightTerminalRemoved: false,
+                terminalsRemoved: false,
                 slicesMade: [],
                 monomerBondType: 'single',
                 monomerHydrated: false,
@@ -840,8 +848,8 @@
                         `;
                     }
 
-                    // Horizontal extension bonds beyond the brackets (Step 3)
-                    if (levelState.bracketsPlaced) {
+                    // Horizontal extension bonds beyond the brackets (Step 4)
+                    if (levelState.terminalsRemoved) {
                         bondsSVG += `
                             <!-- Left extended bond -->
                             <line x1="50" y1="150" x2="${acidC1_X}" y2="150" stroke="#6366f1" stroke-dasharray="4" stroke-width="3" />
@@ -877,16 +885,21 @@
                         <text x="${acidC1_X - 11}" y="111" fill="#fff" font-size="9" font-weight="bold" text-anchor="middle">O</text>
                     `;
 
-                    // Left-end hydroxyl group (-OH) is removed and extended on step 3
-                    if (!levelState.bracketsPlaced) {
+                    // Left-end hydroxyl group (-OH) is removed on terminal cleaving step (Step 3)
+                    if (!levelState.leftTerminalRemoved) {
                         bondsSVG += `
                             <!-- Left bond to outer OH -->
                             <line x1="${acidC1_X}" y1="150" x2="${acidC1_X - 35}" y2="185" stroke="#e2e8f0" stroke-width="3" />
                         `;
+                        
+                        let assistLeftGlow = showAssist && levelState.condensationLinked && !levelState.leftTerminalRemoved;
                         nodesSVG += `
                             <!-- Left OH end group -->
-                            <circle cx="${acidC1_X - 35}" cy="185" r="14" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5" />
-                            <text x="${acidC1_X - 35}" y="188" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">OH</text>
+                            <g onclick="actionRemoveLeftTerminal()" class="${levelState.condensationLinked ? 'cursor-pointer' : ''}">
+                                <circle cx="${acidC1_X - 35}" cy="185" r="14" fill="${assistLeftGlow ? '#fbbf24' : '#94a3b8'}" stroke="${assistLeftGlow ? '#f59e0b' : '#cbd5e1'}" stroke-width="1.5" class="${assistLeftGlow ? 'animate-pulse' : ''}" />
+                                <text x="${acidC1_X - 35}" y="188" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">OH</text>
+                                ${assistLeftGlow ? `<circle cx="${acidC1_X - 35}" cy="185" r="20" fill="#fbbf24" fill-opacity="0.25" class="animate-ping pointer-events-none" />` : ''}
+                            </g>
                         `;
                     }
 
@@ -917,7 +930,6 @@
                         `;
                     }
 
-
                     // ==================== RIGHT MOLECULE (DIOL / DIAMINE / PLA) ====================
                     if (!isPLA) {
                         // Diol/Diamine central box [ R' ]
@@ -937,13 +949,18 @@
                         `;
 
                         // Far right H group (Removed on step 3)
-                        if (!levelState.bracketsPlaced) {
+                        if (!levelState.rightTerminalRemoved) {
                             bondsSVG += `
                                 <line x1="${secondBoxX + 50}" y1="150" x2="${secondBoxX + 75}" y2="150" stroke="#cbd5e1" stroke-width="2" />
                             `;
+                            
+                            let assistRightGlow = showAssist && levelState.condensationLinked && !levelState.rightTerminalRemoved;
                             nodesSVG += `
-                                <circle cx="${secondBoxX + 75}" cy="150" r="11" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5" />
-                                <text x="${secondBoxX + 75}" y="153" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">H</text>
+                                <g onclick="actionRemoveRightTerminal()" class="${levelState.condensationLinked ? 'cursor-pointer' : ''}">
+                                    <circle cx="${secondBoxX + 75}" cy="150" r="11" fill="${assistRightGlow ? '#fbbf24' : '#94a3b8'}" stroke="${assistRightGlow ? '#f59e0b' : '#cbd5e1'}" stroke-width="1.5" class="${assistRightGlow ? 'animate-pulse' : ''}" />
+                                    <text x="${secondBoxX + 75}" y="153" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">H</text>
+                                    ${assistRightGlow ? `<circle cx="${secondBoxX + 75}" cy="150" r="18" fill="#fbbf24" fill-opacity="0.25" class="animate-ping pointer-events-none" />` : ''}
+                                </g>
                             `;
                         }
 
@@ -989,14 +1006,19 @@
                             <line x1="${secondBoxX - 15}" y1="150" x2="${secondBoxX - 50}" y2="150" stroke="#e2e8f0" stroke-width="3" />
                         `;
 
-                        // Far right carboxyl / hydroxyl extension logic
-                        if (!levelState.bracketsPlaced) {
+                        // Far right carboxyl / hydroxyl extension logic (Removed on step 3)
+                        if (!levelState.rightTerminalRemoved) {
                             bondsSVG += `
                                 <line x1="${secondBoxX + 35}" y1="150" x2="${secondBoxX + 60}" y2="150" stroke="#cbd5e1" stroke-width="2" />
                             `;
+                            
+                            let assistRightGlow = showAssist && levelState.condensationLinked && !levelState.rightTerminalRemoved;
                             nodesSVG += `
-                                <circle cx="${secondBoxX + 60}" cy="150" r="11" fill="#94a3b8" stroke="#cbd5e1" stroke-width="1.5" />
-                                <text x="${secondBoxX + 60}" y="153" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">H</text>
+                                <g onclick="actionRemoveRightTerminal()" class="${levelState.condensationLinked ? 'cursor-pointer' : ''}">
+                                    <circle cx="${secondBoxX + 60}" cy="150" r="11" fill="${assistRightGlow ? '#fbbf24' : '#94a3b8'}" stroke="${assistRightGlow ? '#f59e0b' : '#cbd5e1'}" stroke-width="1.5" class="${assistRightGlow ? 'animate-pulse' : ''}" />
+                                    <text x="${secondBoxX + 60}" y="153" fill="#1e293b" font-size="9" font-weight="black" text-anchor="middle">H</text>
+                                    ${assistRightGlow ? `<circle cx="${secondBoxX + 60}" cy="150" r="18" fill="#fbbf24" fill-opacity="0.25" class="animate-ping pointer-events-none" />` : ''}
+                                </g>
                             `;
                         }
 
@@ -1061,8 +1083,15 @@
                                 Form Covalent Linkage
                             </button>
                         `;
+                    } else if (!levelState.terminalsRemoved) {
+                        interactionInstructions.innerHTML = "🧹 STEP 3: Tap directly on the far-left <span class='text-amber-400 font-bold'>-OH</span> group and far-right <span class='text-amber-400 font-bold'>-H</span> atom on the molecular grid to clear the terminal ends and propagate bonds.";
+                        actionDeck.innerHTML = `
+                            <button onclick="actionRemoveTerminalGroupsDirectly()" class="col-span-4 py-3 bg-amber-600 hover:bg-amber-500 font-extrabold text-sm rounded-xl transition shadow-lg shadow-amber-500/25">
+                                Clear Terminal Ends (-OH & -H)
+                            </button>
+                        `;
                     } else if (!levelState.bracketsPlaced) {
-                        interactionInstructions.innerHTML = "📦 STEP 3: Apply structural brackets <span class='text-indigo-400 font-bold'>[ ]</span> and subscript <span class='text-indigo-400 font-bold'>n</span> to finalize, removing terminal HO- and -H groups to extend bonds.";
+                        interactionInstructions.innerHTML = "📦 STEP 4: Apply structural brackets <span class='text-indigo-400 font-bold'>[ ]</span> and subscript <span class='text-indigo-400 font-bold'>n</span> around the open propagating backbone.";
                         actionDeck.innerHTML = `
                             <button onclick="actionPlaceBrackets()" class="col-span-4 py-3 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-sm rounded-xl transition shadow-lg shadow-emerald-500/25">
                                 Apply [ Brackets ] & Subscript (n)
@@ -1296,8 +1325,8 @@
                         } else {
                             bondsSVG += `
                                 <line x1="210" y1="120" x2="290" y2="120" stroke="#475569" stroke-width="5" />
-                                <line x1="170" y1="120" x2="210" y2="120" stroke="#ef4444" stroke-width="3" stroke-dasharray="3" />
-                                <line x1="290" y1="120" x2="330" y2="120" stroke="#ef4444" stroke-width="3" stroke-dasharray="3" />
+                                <line x1="170" y1="120" x2="210" y2="120" stroke="#ef4444" stroke-dasharray="3" stroke-width="3" />
+                                <line x1="290" y1="120" x2="330" y2="120" stroke="#ef4444" stroke-dasharray="3" stroke-width="3" />
                             `;
                         }
 
@@ -1588,7 +1617,45 @@
             renderLevelWorkspace();
         }
 
-        // Action: Apply brackets
+        // Action: Click directly on left terminal group (Condensation Step 3)
+        function actionRemoveLeftTerminal() {
+            if (!levelState.condensationLinked || levelState.leftTerminalRemoved) return;
+            playClickSound();
+            levelState.leftTerminalRemoved = true;
+            checkTerminalsRemoved();
+        }
+
+        // Action: Click directly on right terminal group (Condensation Step 3)
+        function actionRemoveRightTerminal() {
+            if (!levelState.condensationLinked || levelState.rightTerminalRemoved) return;
+            playClickSound();
+            levelState.rightTerminalRemoved = true;
+            checkTerminalsRemoved();
+        }
+
+        // Action: Check both terminal ends removed
+        function checkTerminalsRemoved() {
+            if (levelState.leftTerminalRemoved && levelState.rightTerminalRemoved) {
+                levelState.terminalsRemoved = true;
+                currentSubStep = 3;
+                playCorrectSound();
+                updateProgressIndicator();
+            }
+            renderLevelWorkspace();
+        }
+
+        // Action: Remove both terminal groups directly via helper action button (Condensation Step 3)
+        function actionRemoveTerminalGroupsDirectly() {
+            playCorrectSound();
+            levelState.leftTerminalRemoved = true;
+            levelState.rightTerminalRemoved = true;
+            levelState.terminalsRemoved = true;
+            currentSubStep = 3;
+            updateProgressIndicator();
+            renderLevelWorkspace();
+        }
+
+        // Action: Apply brackets (Final stage 1 step)
         function actionPlaceBrackets() {
             playCorrectSound();
             levelState.bracketsPlaced = true;
