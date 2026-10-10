@@ -123,7 +123,7 @@ label.f input:focus, label.f select:focus { outline: 3px solid var(--yellow); ou
 .mol g.a.gone { opacity: .25; }
 .mol .box { stroke: #1F2A2E; stroke-width: 3; }
 .mol .mark { font-size: 54px; font-weight: 400; }
-.mol .mark-n { font-size: 20px; }
+.mol .mark-n { font-size: 24px; font-style: italic; fill: #FF8243; }
 .mol .scissor { font-size: 22px; }
 .mol .endchip { cursor: pointer; }
 .mol .endchip rect { fill: #FEF8D9; stroke: #1F2A2E; stroke-width: 2.5; stroke-dasharray: 5 3; }
@@ -169,11 +169,15 @@ canvas#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
 </style>
 </head>
 <body>
+<audio id="music" loop preload="none" src="Quiet%20Deduction.mp3"></audio>
 <header class="topbar">
   <a class="brand" href="https://scienceiskhool.github.io/scienceiskhool/" target="_blank" rel="noopener">
     <img src="https://scienceiskhool.github.io/scienceiskhool/assets/img/head.png" alt="" onerror="this.style.visibility='hidden'">
     <span><b>PolymerCraft</b><small>Science is Khool · Polymers</small></span>
   </a>
+  <button class="icon-btn" id="btn-music" type="button" aria-label="Music" title="Music">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+  </button>
   <button class="icon-btn" id="btn-sound" type="button" aria-label="Sound effects" title="Sound effects">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
   </button>
@@ -197,9 +201,9 @@ canvas#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-
         <label class="f" for="in-reg">Register no.<input id="in-reg" inputmode="numeric" pattern="[0-9]*" maxlength="2" required></label>
       </div>
       <div class="paths" role="group" aria-label="Choose what to practise">
-        <button class="btn path" type="button" data-path="addition" aria-pressed="true"><b>Addition polymers</b><span>4 rounds · from alkenes like ethene and propene</span></button>
-        <button class="btn path" type="button" data-path="condensation" aria-pressed="false"><b>Condensation polymers</b><span>2 rounds · polyesters and polyamides</span></button>
-        <button class="btn path" type="button" data-path="mixed" aria-pressed="false"><b>Mixed challenge</b><span>4 rounds · 2 addition + 2 condensation</span></button>
+        <button class="btn path" type="button" data-path="addition" aria-pressed="true"><b>Addition polymers</b><span>4 build rounds, then 2 mystery polymers</span></button>
+        <button class="btn path" type="button" data-path="condensation" aria-pressed="false"><b>Condensation polymers</b><span>Polyesters and polyamides: 2 build rounds, then 2 mystery polymers</span></button>
+        <button class="btn path" type="button" data-path="mixed" aria-pressed="false"><b>Mixed challenge</b><span>4 build rounds (both types), then 3 mystery polymers</span></button>
       </div>
       <p class="form-err" id="form-err" role="alert"></p>
       <button class="btn big" type="submit">Start ▶</button>
@@ -296,6 +300,7 @@ function drawMol(mol, o) {
   var xs = [], ys = [];
   mol.atoms.forEach(function (a) { var w = a.box ? 36 : textW(a.t || "") / 2 + 6; xs.push(a.x - w, a.x + w); ys.push(a.y - 26, a.y + 26); });
   (o.extra || []).forEach(function (e) { xs.push(e.x - 40, e.x + 40); ys.push(e.y - 30, e.y + 30); });
+  if (o.marks && o.marks.length) { var r = Math.max.apply(null, mol.atoms.filter(function (a) { return !a.stub; }).map(function (a) { return Math.abs(a.y); }).concat([40])); ys.push(-r - 32, r + 48); }
   var pad = 18, x0 = Math.min.apply(null, xs) - pad, x1 = Math.max.apply(null, xs) + pad, y0 = Math.min.apply(null, ys) - pad - (o.top || 0), y1 = Math.max.apply(null, ys) + pad;
   var W = x1 - x0, H = y1 - y0, A = {}; mol.atoms.forEach(function (a) { A[a.id] = a; });
   var s = '<svg class="mol' + (o.enter ? " enter" : "") + '" viewBox="' + x0 + " " + y0 + " " + W + " " + H + '" style="min-width:' + Math.round(W * (o.minScale || .56)) + 'px;max-width:' + Math.round(W * 1.15) + 'px" role="img" aria-label="' + esc(o.alt || "Structure") + '">';
@@ -329,12 +334,17 @@ function drawMol(mol, o) {
   (o.extra || []).forEach(function (e) { s += e.svg; });
   return s + "</svg>";
 }
+// Textbook-style square brackets: tall orange lines crossing the chosen bonds, spanning the whole structure, with n at the bottom right.
 function bracketMarks(mol, ids) {
   var A = {}; mol.atoms.forEach(function (a) { A[a.id] = a; });
+  var ys = mol.atoms.filter(function (a) { return !a.stub; }).map(function (a) { return a.y; });
+  var reach = Math.max(Math.abs(Math.min.apply(null, ys)), Math.abs(Math.max.apply(null, ys)), 40), top = -reach - 26, bot = reach + 26, arm = 14;
   var mids = ids.map(function (id) { var b = mol.bonds.find(function (x) { return x.id === id; }); return { x: (A[b.a].x + A[b.b].x) / 2, y: (A[b.a].y + A[b.b].y) / 2 }; }).sort(function (p, q) { return p.x - q.x; });
   return mids.map(function (m, i) {
-    var t = i === 0 ? "[" : "]";
-    return '<text class="mark" x="' + m.x + '" y="' + (m.y - 2) + '" fill="#FF8243">' + t + "</text>" + (i === mids.length - 1 && mids.length === 2 ? '<text class="mark-n" x="' + (m.x + 16) + '" y="' + (m.y + 30) + '">n</text>' : "");
+    var d = i === 0 ? arm : -arm;  // serifs point inwards
+    var path = "M" + (m.x + d) + " " + top + " H" + m.x + " V" + bot + " H" + (m.x + d);
+    return '<path d="' + path + '" fill="none" stroke="#FF8243" stroke-width="4.5" stroke-linecap="square"/>' +
+      (i === mids.length - 1 && mids.length === 2 ? '<text class="mark-n" x="' + (m.x + 14) + '" y="' + (bot + 2) + '" fill="#FF8243">n</text>' : "");
   });
 }
 function scissorMarks(mol, ids) {
@@ -482,6 +492,13 @@ var Sound = {
   end: function () { [523, 659, 784, 1047].forEach(function (n, i) { Sound.tone(n, "triangle", .3, .14, i * .12); }); }
 };
 $("btn-sound").classList.toggle("off", !Sound.on);
+var Music = {
+  el: $("music"), on: store("music-polymer") !== false,
+  play: function () { if (!this.on) return; try { this.el.volume = .3; var p = this.el.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} },
+  stop: function () { try { this.el.pause(); this.el.currentTime = 0; } catch (e) {} }
+};
+$("btn-music").classList.toggle("off", !Music.on);
+$("btn-music").addEventListener("click", function () { Music.on = !Music.on; store("music-polymer", Music.on); $("btn-music").classList.toggle("off", !Music.on); if (Music.on && !$("scr-play").hidden) Music.play(); else Music.el.pause(); });
 $("btn-sound").addEventListener("click", function () { Sound.on = !Sound.on; store("sfx", Sound.on); $("btn-sound").classList.toggle("off", !Sound.on); });
 
 /* =================== START =================== */
@@ -512,40 +529,37 @@ $("form-start").addEventListener("submit", function (e) {
 });
 
 /* =================== ROUNDS =================== */
+// Build rounds use the standard monomers; the mystery rounds come at the end and use the harder ones.
+var STANDARD = ["ethene", "chloroethene", "propene", "tetrafluoroethene"], HARDER = ["phenylethene", "but-1-ene", "but-2-ene", "pent-2-ene"];
+function alk(key) { return ALKENES.filter(function (m) { return m.key === key; })[0]; }
 function makeRounds(path) {
-  var core = shuffle(ALKENES.filter(function (m) { return m.core; })), all = ALKENES.slice();
-  function addRound(i) {
-    var build = core[i % core.length];
-    var pool = shuffle(all.filter(function (m) { return m !== build; }));
-    var tricky = pool.filter(function (m) { return !m.core; });
-    var mystery = (i % 2 === 1 && tricky.length) ? tricky[0] : pool[0];
-    return { kind: "add", build: build, mystery: mystery };
-  }
-  function condRound(i, order) { var types = ["polyester", "polyamide"]; return { kind: "cond", build: CONDENSATION[order[i]], mystery: CONDENSATION[types[Math.floor(Math.random() * 2)]] }; }
-  var order = shuffle(["polyester", "polyamide"]);
-  if (path === "addition") return [0, 1, 2, 3].map(addRound);
-  if (path === "condensation") return [condRound(0, order), condRound(1, order)];
-  return [addRound(0), condRound(0, order), addRound(1), condRound(1, order)];
+  var std = shuffle(STANDARD).map(alk), hard = shuffle(HARDER).map(alk), cb = shuffle(["polyester", "polyamide"]), cm = shuffle(["polyester", "polyamide"]);
+  function R(kind, part, poly) { return { kind: kind, part: part, build: poly, mystery: poly }; }
+  if (path === "addition") return std.map(function (m) { return R("add", "build", m); }).concat(hard.slice(0, 2).map(function (m) { return R("add", "mystery", m); }));
+  if (path === "condensation") return cb.map(function (t) { return R("cond", "build", CONDENSATION[t]); }).concat(cm.map(function (t) { return R("cond", "mystery", CONDENSATION[t]); }));
+  return [R("add", "build", std[0]), R("cond", "build", CONDENSATION[cb[0]]), R("add", "build", std[1]), R("cond", "build", CONDENSATION[cb[1]]),
+          R("add", "mystery", hard[0]), R("cond", "mystery", CONDENSATION[cm[0]]), R("add", "mystery", hard[1])];
 }
 var STEP_NAMES = { add: ["Open C=C", "Brackets", "Name it", "Cut chain", "Rebuild", "Monomer"], cond: ["Water leaves", "Brackets", "Linkage", "Cut chain", "Add H₂O", "Monomers"] };
 function startGame(path, student) {
   G = { path: path, student: student, rounds: makeRounds(path), ri: 0, points: 0, log: [], hints: 0, startedAt: Date.now() };
-  show("scr-play"); startRound();
+  show("scr-play"); Music.play(); startRound();
 }
 function startRound() {
-  G.r = G.rounds[G.ri]; G.step = 0; G.rec = { round: G.r, steps: [] };
+  G.r = G.rounds[G.ri]; G.first = G.r.part === "build" ? 0 : 3; G.last = G.first + 2; G.step = G.first; G.rec = { round: G.r, steps: [] };
   runStep();
 }
 function paintHud() {
   $("txt-points").textContent = G.points;
-  $("txt-round").textContent = "Round " + (G.ri + 1) + "/" + G.rounds.length;
-  var partA = G.step < 3, r = G.r;
-  $("txt-part").textContent = partA ? "Part A · Build" : "Part B · Mystery";
+  var r = G.r, partA = r.part === "build", same = G.rounds.filter(function (x) { return x.part === r.part; }), k = same.indexOf(r);
+  $("txt-round").textContent = (partA ? "Build " : "Mystery ") + (k + 1) + "/" + same.length;
+  $("txt-part").textContent = partA ? "Build" : "Mystery polymer";
   $("txt-part").className = "part " + (partA ? "a" : "b");
   $("txt-title").textContent = partA ? (r.kind === "add" ? "Polymer from " + r.build.key : "Making " + r.build.name) : (r.kind === "add" ? "An unknown addition polymer" : "An unknown condensation polymer");
   $("steps").innerHTML = STEP_NAMES[r.kind].map(function (n, i) {
+    if (i < G.first || i > G.last) return "";
     var s = G.rec.steps[i], cls = s === 2 ? "ok" : s === 1 ? "half" : s === 0 ? "no" : i === G.step ? "now" : "";
-    return '<span class="' + cls + '">' + (i + 1) + ". " + n + "</span>";
+    return '<span class="' + cls + '">' + (i - G.first + 1) + ". " + n + "</span>";
   }).join("");
 }
 
@@ -618,7 +632,7 @@ function addSteps(r) {
       mark: function (ok) { setStates(S.mol, map1(S.sel, ok ? "good" : "bad")); drawOpen(true); },
       unmark: function () { S.sel = null; setStates(S.mol, {}); drawOpen(); },
       reveal: function () { setStates(S.mol, { cc: "ans" }); drawOpen(true); return "The C=C double bond opens. One of its two bonds breaks, so each carbon has a spare bond to join the next monomer."; },
-      after: function () { bench(drawMol(chainA, { enter: 1, alt: "Three monomers joined into a chain" }), true); },
+      after: function () { bench(drawMol(chainA, { enter: 1, alt: "Three monomers joined into a chain" }), true); setAsk("The C=C bond in each " + m.key + " molecule opened, and the monomers joined end to end. This chain is poly(" + m.key + ").", "Notice: the chain now has only single C–C bonds. Next, you'll mark its repeat unit."); },
       hint: function () { return "Which bond is special about an alkene? Only that bond can open up without losing any atoms."; }
     },
     { // 2. brackets
@@ -663,7 +677,7 @@ function addSteps(r) {
       mark: function (ok) { setStates(S.mol, map1(S.sel, ok ? "good" : "bad")); drawUnit(true); },
       unmark: function () { S.sel = null; setStates(S.mol, {}); drawUnit(); },
       reveal: function () { setStates(S.mol, { cc: "ans" }); drawUnit(true); return "The C–C bond between the two carbons becomes C=C again, and the two open bonds at the ends disappear."; },
-      after: function () { bench(drawMol(alkeneMol(q, { noTap: 1 }), { enter: 1, alt: "The monomer" })); },
+      after: function () { bench(drawMol(alkeneMol(q, { noTap: 1 }), { enter: 1, alt: "The monomer" })); setAsk("The C–C bond became C=C again and the open ends closed up. This is the monomer.", "Next, you'll name it."); },
       hint: function () { return "In the monomer, the two backbone carbons were joined by a double bond."; }
     },
     mcStep("What is the name of this monomer?", [q.key, q.alkane, "poly(" + q.key + ")", q.other], q.key, "nameMono",
@@ -695,6 +709,7 @@ function condSteps(r) {
       after: function () {
         var d = condDimer(T), A = {}; d.atoms.forEach(function (a) { A[a.id] = a; });
         bench(drawMol(d, { enter: 1, extra: [{ x: A.bX1.x, y: -70, svg: '<text class="water float" x="' + A.bX1.x + '" y="-64">+ H₂O</text>' }], alt: "The two monomers joined by a linkage" }), true);
+        setAsk("The acid's –OH and an H from the " + T.partner + " left as water, and the two monomers joined by " + (T.link === "ester" ? "an ester" : "an amide") + " linkage.", "Next, this happens again and again along the chain.");
       },
       hint: function () { return "Water is H₂O, so 3 atoms leave. Which end of the acid has an O–H? Which atom can the " + T.partner + " spare?"; }
     },
@@ -826,7 +841,7 @@ function submit() {
     var pts = S.tries === 1 ? 20 : 10; G.points += pts; G.rec.steps[G.step] = S.tries === 1 ? 2 : 1;
     S.locked = true; Sound.ok(); st.mark(true); paintHud();
     msg("ok", "Correct! +" + pts, "");
-    setActs([{ id: "btn-next", t: G.step === 5 ? (G.ri === G.rounds.length - 1 ? "See my results →" : "Next round →") : "Continue →", cls: "teal", fn: next }]);
+    setActs([{ id: "btn-next", t: G.step === G.last ? (G.ri === G.rounds.length - 1 ? "See my results →" : nextLabel()) : "Continue →", cls: "teal", fn: next }]);
     if (st.after) setTimeout(function () { st.after(); }, 650);
     $("btn-next").focus({ preventScroll: true });
     return;
@@ -844,11 +859,12 @@ function submit() {
   G.rec.steps[G.step] = 0; S.locked = true; paintHud();
   var why = st.reveal();
   msg("no", "Here's the answer", esc(why));
-  setActs([{ id: "btn-next", t: "Continue →", cls: "teal", fn: function () { if (st.after) { st.after(); setActs([{ id: "btn-next2", t: G.step === 5 ? "Next →" : "Continue →", cls: "teal", fn: next }]); } else next(); } }]);
+  setActs([{ id: "btn-next", t: "Continue →", cls: "teal", fn: function () { if (st.after) { st.after(); setActs([{ id: "btn-next2", t: G.step === G.last ? nextLabel() : "Continue →", cls: "teal", fn: next }]); } else next(); } }]);
 }
 function msg(kind, title, body) { var m = $("msg"); m.className = "msg " + kind; m.innerHTML = "<b>" + title + "</b>" + (body || ""); m.hidden = false; }
+function nextLabel() { var nx = G.rounds[G.ri + 1]; return nx && nx.part === "mystery" && G.r.part === "build" ? "On to the mystery polymers →" : "Next round →"; }
 function next() {
-  if (G.step < 5) { G.step++; runStep(); return; }
+  if (G.step < G.last) { G.step++; runStep(); return; }
   G.log.push(G.rec);
   if (G.ri < G.rounds.length - 1) { G.ri++; startRound(); return; }
   finish();
@@ -874,7 +890,8 @@ function finish() {
   $("res-time").textContent = mmss(secs); $("res-points").textContent = G.points;
   var first = G.student.name.split(" ")[0];
   $("res-title").textContent = pct >= 80 ? "Polymer pro, " + first + "!" : pct >= 50 ? "Good work, " + first + "!" : "Keep practising, " + first + "!";
-  $("res-msg").textContent = "You built " + log.length + " polymer" + (log.length > 1 ? "s" : "") + " and decoded " + log.length + " mystery chain" + (log.length > 1 ? "s" : "") + ".";
+  var nb = log.filter(function (r) { return r.round.part === "build"; }).length, nm = log.length - nb;
+  $("res-msg").textContent = "You built " + nb + " polymer" + (nb === 1 ? "" : "s") + " and decoded " + nm + " mystery polymer" + (nm === 1 ? "" : "s") + ".";
   $("res-bars").innerHTML = STEP_GROUPS.map(function (g, i) { var v = byGroup[i], p = v[1] ? Math.round(100 * v[0] / v[1]) : 0; return '<div class="bar-row"><span>' + g[0] + '</span><div class="bar"><i class="' + (p < 60 ? "low" : "") + '" style="width:' + p + '%"></i></div><span class="n">' + v[0] + "/" + v[1] + "</span></div>"; }).join("");
   $("res-weak").innerHTML = errs.length ? errs.slice(0, 4).map(function (e) { return "<li><b>" + esc(ERR[e].label) + (errCount[e] > 1 ? " ×" + errCount[e] : "") + "</b><span>" + esc(ERR[e].tip) + "</span></li>"; }).join("")
     : '<li class="good"><b>Nothing to fix this time!</b><span>Try the other pathway next.</span></li>';
@@ -886,9 +903,9 @@ function finish() {
     });
   });
   $("res-review").innerHTML = rev.length ? rev.join("") : "<li>No mistakes. Well done!</li>";
-  show("scr-result"); Sound.end(); if (pct >= 80) Confetti.go();
+  Music.stop(); show("scr-result"); Sound.end(); if (pct >= 80) Confetti.go();
   var pathName = { addition: "Addition polymers", condensation: "Condensation polymers", mixed: "Mixed challenge" }[G.path];
-  var summary = "Rounds: " + log.map(function (r) { return r.round.kind === "add" ? "built poly(" + r.round.build.key + "), decoded " + r.round.mystery.key : "built " + r.round.build.key + ", decoded " + r.round.mystery.key; }).join("; ") +
+  var summary = "Rounds: " + log.map(function (r) { return r.round.part === "build" ? "built " + (r.round.kind === "add" ? "poly(" + r.round.build.key + ")" : r.round.build.key) : "decoded " + r.round.mystery.key; }).join("; ") +
     " | First try: " + STEP_GROUPS.map(function (g, i) { return g[0].toLowerCase() + " " + byGroup[i][0] + "/" + byGroup[i][1]; }).join(", ") +
     " | Errors: " + (errs.length ? errs.map(function (e) { return ERR[e].label + " x" + errCount[e]; }).join("; ") : "none") + " | Hints: " + G.hints;
   var wrongTxt = []; log.forEach(function (r) { (r.given || []).forEach(function (g) { wrongTxt.push((g.step < 3 ? "Build " + r.round.build.key : "Mystery " + r.round.mystery.key) + " / " + STEP_NAMES[r.round.kind][g.step] + ": " + ERR[g.err].label + (g.given ? " (" + g.given + ")" : "")); }); });
@@ -906,7 +923,7 @@ function send(payload) {
 }
 $("btn-resend").addEventListener("click", function () { send(G.payload); });
 $("btn-again").addEventListener("click", function () { Confetti.stop(); startGame(G.path, G.student); });
-$("btn-home").addEventListener("click", function () { Confetti.stop(); $("txt-best").textContent = store("polymer-best") || 0; show("scr-start"); });
+$("btn-home").addEventListener("click", function () { Confetti.stop(); Music.stop(); $("txt-best").textContent = store("polymer-best") || 0; show("scr-start"); });
 
 /* =================== CONFETTI =================== */
 var Confetti = {
