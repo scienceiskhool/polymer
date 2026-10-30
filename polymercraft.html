@@ -135,10 +135,9 @@ label.f input:focus, label.f select:focus { outline: 3px solid var(--yellow); ou
 .gchip.used { visibility: hidden; }
 .gchip.ghost { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg); background: var(--yellow); }
 .mol .endchip.over rect { fill: #FCE883; stroke-dasharray: none; }
-.hpair { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 24px; padding-bottom: 6px; }
-.hpair > div { flex: 1 1 300px; min-width: 0; }
-.bench .hpair svg { width: 100%; height: auto; max-height: 145px; min-width: 0 !important; }
-@media (min-width: 700px) { .bench .hpair svg { max-height: 220px; } }
+.hpair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: center; gap: 0 24px; padding-bottom: 6px; }
+.hpair > div { min-width: 0; text-align: center; }
+.bench .hpair svg { display: block; margin: 0 auto; width: auto; max-width: 100%; height: auto; }
 .bench .reflbl { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; margin: 8px 0 -6px; }
 .mol .water { font-size: 20px; fill: #057A7A; }
 @keyframes floatup { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-40px); opacity: 0; } }
@@ -314,7 +313,10 @@ function drawMol(mol, o) {
   if (o.marks && o.marks.length) { var r = Math.max.apply(null, mol.atoms.filter(function (a) { return !a.stub; }).map(function (a) { return Math.abs(a.y); }).concat([40])); ys.push(-r - 32, r + 48); }
   var pad = 18, x0 = Math.min.apply(null, xs) - pad, x1 = Math.max.apply(null, xs) + pad, y0 = Math.min.apply(null, ys) - pad - (o.top || 0), y1 = Math.max.apply(null, ys) + pad;
   var W = x1 - x0, H = y1 - y0, A = {}; mol.atoms.forEach(function (a) { A[a.id] = a; });
-  var s = '<svg class="mol' + (o.enter ? " enter" : "") + '" viewBox="' + x0 + " " + y0 + " " + W + " " + H + '" style="min-width:' + Math.round(W * (o.minScale || .56)) + 'px;max-width:' + Math.round(W * 1.15) + 'px" role="img" aria-label="' + esc(o.alt || "Structure") + '">';
+  // o.fit = fixed pixel height target (used where two drawings sit side by side; avoids Safari's flex/percentage sizing bug)
+  var size = o.fit ? 'width="' + Math.round(W * Math.min(1.15, o.fit / H)) + '" height="' + Math.round(H * Math.min(1.15, o.fit / H)) + '" style="aspect-ratio:' + Math.round(W) + " / " + Math.round(H) + '"'
+    : 'style="min-width:' + Math.round(W * (o.minScale || .56)) + 'px;max-width:' + Math.round(W * 1.15) + 'px"';
+  var s = '<svg class="mol' + (o.enter ? " enter" : "") + '" viewBox="' + x0 + " " + y0 + " " + W + " " + H + '" ' + size + ' role="img" aria-label="' + esc(o.alt || "Structure") + '">';
   mol.bonds.forEach(function (b) {
     var p = A[b.a], q = A[b.b], cls = "b" + (b.state ? " " + b.state : "");
     s += '<g class="' + cls + '" data-b="' + b.id + '">';
@@ -766,6 +768,7 @@ function addSteps(r) {
     }
   ];
   function drawFull(lock) { bench(drawMol(S.mol, { alt: "Full structural formula of " + m.key })); if (!lock) wireBonds(S.mol, function (id) { S.sel = id; Sound.tap(); setStates(S.mol, map1(id, "sel")); drawFull(); }); }
+  function fitH() { return window.innerWidth >= 700 ? 210 : 140; }
   function hJudge() {
     var L = function (k) { return S.slots[k] === null ? null : S.pal[S.slots[k]].t; };
     function score(sideA, sideB) {
@@ -780,7 +783,7 @@ function addSteps(r) {
   }
   function drawH() {
     var sl = {}; Object.keys(S.slots).forEach(function (k) { sl[k] = { t: S.slots[k] === null ? "" : S.pal[S.slots[k]].t, st: S.st[k] }; });
-    bench('<div class="hpair"><div><p class="reflbl">Full structural formula</p>' + drawMol(S.ref, { alt: "Full structural formula of " + m.key, minScale: .1 }) + '</div><div><p class="reflbl">H structure</p>' + drawMol(hMol(sl), { alt: "H structure with four spaces", minScale: .1 }) + "</div></div>");
+    bench('<div class="hpair"><div><p class="reflbl">Full structural formula</p>' + drawMol(S.ref, { alt: "Full structural formula of " + m.key, fit: fitH() }) + '</div><div><p class="reflbl">H structure</p>' + drawMol(hMol(sl), { alt: "H structure with four spaces", fit: fitH() }) + "</div></div>");
     $("stage").innerHTML = '<div class="gchips">' + S.pal.map(function (c, i) { return '<button class="gchip' + (c.used ? " used" : "") + (i === S.pick ? " sel" : "") + '" type="button" data-i="' + i + '">' + fx(c.t) + "</button>"; }).join("") + "</div>";
     if (S.locked) return;
     Array.prototype.forEach.call($("bench").querySelectorAll(".endchip"), function (c) { c.addEventListener("click", function () { if (!S.locked) put(c.dataset.end); }); });
