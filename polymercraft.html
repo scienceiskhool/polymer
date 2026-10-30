@@ -137,7 +137,7 @@ label.f input:focus, label.f select:focus { outline: 3px solid var(--yellow); ou
 .mol .endchip.over rect { fill: #FCE883; stroke-dasharray: none; }
 .hpair { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 24px; padding-bottom: 6px; }
 .hpair > div { flex: 1 1 300px; min-width: 0; }
-.bench .hpair svg { width: auto; max-width: 100%; max-height: 145px; }
+.bench .hpair svg { width: 100%; height: auto; max-height: 145px; min-width: 0 !important; }
 @media (min-width: 700px) { .bench .hpair svg { max-height: 220px; } }
 .bench .reflbl { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; margin: 8px 0 -6px; }
 .mol .water { font-size: 20px; fill: #057A7A; }
